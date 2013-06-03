@@ -220,8 +220,8 @@ Converts a key to proper case with regards to CAPSLOCK status and whether SHIFT 
 This is called bc key combos with Alt do not consume shift.
 
 params: key, if alphabetic then key is in upper case
-		shift (boolean)
-		caps (boolean)
+		shift (nil or "Shift")
+		caps (0 or 1)
 ]]
 --TODO XLAT
 function ffind.shifted_case (key, shift, caps)
@@ -232,7 +232,7 @@ function ffind.shifted_case (key, shift, caps)
       1		0	A 3		A #
       1		1	A 3		a #
 ]]
-    local changeCase = caps ~= shift -- (not xor) fucking LUA
+    local changeCase = not not caps == not not shift -- (xor) fucking LUA, extended boolean logic and does not have === operator
 
     --far.Show(key, shift, caps, changeCase)
     local shiftPair = {
@@ -260,9 +260,11 @@ function ffind.shifted_case (key, shift, caps)
     }
     -- cause Lua idioms are soooo simple and intuitive
     return  (shift and shiftPair[key]) or
-    		(changeCase and #key==1 and far.LIsAlpha(key) and key:lower()) or
-    		(shift and shift..key or key)
-
+    		(#key==1 and far.LIsAlpha(key) and
+    			(changeCase and key:lower() or
+    			key)
+    		) or
+    		((shift or '')..key)
 end
 
 
@@ -306,34 +308,12 @@ function ffind.get_dry_key (inprec)
 
     -- below this we have only Alt(Shift)?Key combinations
 
---    far.MacroPost ("mf.msave ('thisis', 'sostupid', mf.flock(1,-1)")
-  --  far.Show(require "_G".globalvar)
-    --globalvar = nil
-    return ffind.shifted_case (key, shift, bit.band(inprec.ControlKeyState, _F.CAPSLOCK_ON) ~= 0)
---[[
-    local vkToChar = {
-        [186] = ';',
-        [187] = '=',
-        [188] = ',',
-        [189] = '-',
-        [190] = '.',
-        [191] = '/',
-        [192] = '`',
-        [219] = '[',
-        [220] = '\\',
-        [221] = ']',
-        [222] = "'"
-    }
-    local vkcode = inprec.VirtualKeyCode;
-    local vkeys = win.GetVirtualKeys()
-    if (vkToChar[vkcode]) then return vkToChar[vkcode] end
+	local ffi = require("ffi")
+	ffi.cdef[[ int GetKeyState(int nVirtKey); ]]
 
-    if ((vkcode < 48) or (vkcode >90) or ((vkcode>58) and (vkcode<64))) then
-        return nil
-    end
+	local capslockState = ffi.C.GetKeyState(20) -- VK_CAPITAL code
 
-    return vkeys[inprec.VirtualKeyCode]:lower();
-]]
+    return ffind.shifted_case (key, shift, capslockState)
 end
 
 --[[

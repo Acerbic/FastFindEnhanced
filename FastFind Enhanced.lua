@@ -12,7 +12,26 @@ function export.GetPluginInfo ()
 end
 
 function export.Open( openFrom, Guid, Item)
---  	far.Show(mf.flock(1,-1))
+--[[
+local sql = require "ljsqlite3"
+
+local fname = win.GetEnv("farprofile").."\\generalconfig.db"
+local conn = assert(sql.open(fname, "ro"))
+
+local t = conn:exec("SELECT `value` FROM general_config WHERE key=='Panel.Layout' AND name=='ColumnTitles'")
+
+local arr={}
+for i in ipairs(t.value) do
+--  local v=type(t.value[i])=="string" and '"'..t.value[i]..'"' or t.value[i]
+  --arr[i] = {text=("%-32s │ %s"):format(t.key[i].."."..t.name[i], tostring(v))}
+  	far.Show(i, t.value[i])
+end
+
+--table.sort(arr, function(a,b) return a.text<b.text end)
+--far.Menu({Title="database",Flags="FMENU_SHOWAMPERSAND"}, arr)
+
+conn:close()
+]]
 
     package.loaded.ffind = nil
     local ffind = require "ffind"
@@ -46,5 +65,4 @@ function export.Open( openFrom, Guid, Item)
     end
 
     _G[ffind.dlgGUID] = nil;
-
 end
