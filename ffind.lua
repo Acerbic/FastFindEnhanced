@@ -2,8 +2,8 @@
 
 ffind.dlgGUID="{ACE12B1C-5FC7-E11F-1337-FA575EA12C14}"       -- fuck teh police
 
-local _F = far.Flags;
-
+local _F = far.Flags
+local bit = require "bit"
 local width = 36; --dialog width
 
 local shorterSearch = true --opt
@@ -216,6 +216,57 @@ function ffind.get_new_position_shorter_start(pattern, direction)
 end
 
 --[[
+Converts a key to proper case with regards to CAPSLOCK status and whether SHIFT was pressed.
+This is called bc key combos with Alt do not consume shift.
+
+params: key, if alphabetic then key is in upper case
+		shift (boolean)
+		caps (boolean)
+]]
+--TODO XLAT
+function ffind.shifted_case (key, shift, caps)
+--[[
+    shift caps input    output
+      0		0  	A 3   	a 3
+      0		1	A 3		A 3
+      1		0	A 3		A #
+      1		1	A 3		a #
+]]
+    local changeCase = caps ~= shift -- (not xor) fucking LUA
+
+    --far.Show(key, shift, caps, changeCase)
+    local shiftPair = {
+        ["`"] = "~",
+        ["1"] = "!",
+        ["2"] = "@",
+        ["3"] = "#",
+        ["4"] = "$",
+        ["5"] = "%",
+        ["6"] = "^",
+        ["7"] = "&",
+        ["8"] = "*",
+        ["9"] = "(",
+        ["0"] = ")",
+        ["-"] = "_",
+        ["="] = "+",
+        ["["] = "{",
+        ["]"] = "}",
+        [";"] = ":",
+        ["'"] = '"',
+        [","] = "<",
+        ["."] = ">",
+        ["/"] = "?",
+        ["BackSlash"] = "|"
+    }
+    -- cause Lua idioms are soooo simple and intuitive
+    return  (shift and shiftPair[key]) or
+    		(changeCase and #key==1 and far.LIsAlpha(key) and key:lower()) or
+    		(shift and shift..key or key)
+
+end
+
+
+--[[
 Convert InputRecord to a key name relevant to this dialog input
 
 params: inputRecord
@@ -251,34 +302,14 @@ function ffind.get_dry_key (inprec)
     if (not shift and key == "BackSlash") then return "\\" end -- (R?Alt)?BackSlash
 
 
-    -- TODO: case control
-    if (not (alt and shift)) then return key end -- return Key if AltKey or ShiftKey or Key
+    if (not alt) then return key end -- return Key if ShiftKey or Key
 
-    -- here only AltShiftKey. Need to transform it into ShiftKey if possible
-    local shiftPair ={
-        ["`"] = "~",
-        ["1"] = "!",
-        ["2"] = "@",
-        ["3"] = "#",
-        ["4"] = "$",
-        ["5"] = "%",
-        ["6"] = "^",
-        ["7"] = "&",
-        ["8"] = "*",
-        ["9"] = "(",
-        ["0"] = ")",
-        ["-"] = "_",
-        ["="] = "+",
-        ["["] = "{",
-        ["]"] = "}",
-        [";"] = ":",
-        ["'"] = "'",
-        [","] = "<",
-        ["."] = ">",
-        ["/"] = "?",
-        ["BackSlash"] = "|"
-    }
-    return shiftPair[key] or (shift and shift..key or key) -- cause Lua idioms are soooo simple and intuitive
+    -- below this we have only Alt(Shift)?Key combinations
+
+--    far.MacroPost ("mf.msave ('thisis', 'sostupid', mf.flock(1,-1)")
+  --  far.Show(require "_G".globalvar)
+    --globalvar = nil
+    return ffind.shifted_case (key, shift, bit.band(inprec.ControlKeyState, _F.CAPSLOCK_ON) ~= 0)
 --[[
     local vkToChar = {
         [186] = ';',
@@ -325,12 +356,17 @@ returns: {X=integer, Y=integer} (table with dialog's left-top coordinates)
 ]]
 function ffind.calc_new_sidestick_dialog_coords(hDlg)
     local pRect = panel.GetPanelInfo(nil,0).PanelRect; -- passive panel!
-    local farRect = far.AdvControl (_F.ACTL_GETFARRECT,0,0)
     local topItem = panel.GetPanelInfo(nil,1).TopPanelItem
     local curItem = panel.GetPanelInfo(nil,1).CurrentItem
 
+    --TODO check panel settings for "Show column titles" (+1) and "Show info line" (+2)
+    --far:config
+--  Panel.Layout.ColumnTitles
+--  Panel.Layout.StatusLine
+    local panelLinesUsedForOtherInfo = 3      -- magical constant
+
     local X
-    if (pRect.left == farRect.Left) then
+    if (bit.band(panel.GetPanelInfo(nil,0).Flags, _F.PFLAGS_PANELLEFT) >0) then
         -- passive on the left side
         X = pRect.right-width+1
     else
@@ -338,7 +374,7 @@ function ffind.calc_new_sidestick_dialog_coords(hDlg)
     end
 
     --how many item lines fit in panel (by height)
-    local totalItemLines = pRect.bottom - pRect.top -4;     -- magical constant
+    local totalItemLines = pRect.bottom - pRect.top -panelLinesUsedForOtherInfo -1;
     local overTop = curItem-topItem -- 0+
 
     local Y = overTop % totalItemLines + 1 + pRect.top
@@ -415,7 +451,6 @@ function ffind.process_input(hDlg, inputRec)
     local searchDirection = "current_or_next" -- default search mode
 
     -- care: dryKey might be nil or false
-
     -- Lua, where's my switch statement? I miss it so hard.
     if (dryKey == false) then
         return false -- do default whatever
@@ -442,7 +477,7 @@ function ffind.process_input(hDlg, inputRec)
     elseif (dryKey == "CtrlV") then -- special occasion covering all insertion keys
         local paste = far.PasteFromClipboard ()
         _G[ffind.dlgGUID].dontBlinkPlease = true
-        for i = 1,#paste-1 do --all but a final one
+        for i = 1,#paste-1 do --all but the final one
             ffind.process_input (hDlg, far.NameToInputRecord(paste:sub(i,i)))
         end
         _G[ffind.dlgGUID].dontBlinkPlease = nil
@@ -560,9 +595,6 @@ function ffind.create_dialog()
 	local hDlg = far.DialogInit(ffind.dlgGUID,left,top,right,bottom,nil,dialogItems,
 		_F.FDLG_KEEPCONSOLETITLE + _F.FDLG_SMALLDIALOG + _F.FDLG_NODRAWSHADOW ,
         ffind.dlg_proc)
-    if (precedingAst) then
-        ffind.set_dialog_item_data(hDlg, 2, "*");
-    end
 
     return hDlg
 end

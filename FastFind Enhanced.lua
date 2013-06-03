@@ -1,4 +1,5 @@
 ﻿local _F = far.Flags
+local precedingAst = true --opt
 
 function export.GetPluginInfo ()
 
@@ -10,7 +11,9 @@ function export.GetPluginInfo ()
 	}
 end
 
-function export.Open( openFrom, ...)
+function export.Open( openFrom, Guid, Item)
+--  	far.Show(mf.flock(1,-1))
+
     package.loaded.ffind = nil
     local ffind = require "ffind"
 
@@ -21,15 +24,17 @@ function export.Open( openFrom, ...)
     _G[ffind.dlgGUID].firstRun = true
     far.DialogRun(hDlg); -- run and close. Otherwise calls to "process_input" will lock input field into "unchanged" state
 
--- initialize dialog with input string
-    local pattern = ffind.get_dialog_item_data(hDlg,2)
-    ffind.set_dialog_item_data(hDlg,2,"")
-    while (#pattern >0) do
-        local inprec = far.NameToInputRecord(pattern:sub(1,1))
-        pattern = pattern:sub(2,-1)
-        ffind.process_input(hDlg, inprec)
-    end
+	-- initialize dialog with input string
+    if (precedingAst) then
+    	local pattern = "*"
+	    while (#pattern >0) do
+	        local inprec = far.NameToInputRecord(pattern:sub(1,1))
+	        pattern = pattern:sub(2,-1)
+	        ffind.process_input(hDlg, inprec)
+	    end
+	end
 
+	--main loop
     while (not _G[ffind.dlgGUID].dieSemaphor) do
         far.DialogRun(hDlg);
     end
@@ -37,8 +42,9 @@ function export.Open( openFrom, ...)
     far.DialogFree(hDlg);
 
     if (_G[ffind.dlgGUID].resendKey) then
-        Keys(_G[ffind.dlgGUID].resendKey)
+    	far.MacroPost ('Keys("'.._G[ffind.dlgGUID].resendKey..'")') -- note quotes usage, resendKey may contain <'> but not <"> ( <"> is only generated when Alt and Control are not pressed, and is checked agains filename inside a dialog )
     end
+
     _G[ffind.dlgGUID] = nil;
 
 end
