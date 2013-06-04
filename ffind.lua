@@ -3,7 +3,7 @@
 ffind.dlgGUID="{ACE12B1C-5FC7-E11F-1337-FA575EA12C14}"       -- fuck teh police
 
 local _F = far.Flags
-local bit = require "bit"
+local bit = require "bit64"
 local width = 36; --dialog width
 
 local shorterSearch = true --opt
@@ -12,6 +12,7 @@ local sideStickPosition = true --opt
 local precedingAst = true; -- opt
 local forceScrollEdge = 0.08 -- opt [0.0-0.5] 0.5 for always(default) scroll, 0.0 for minimum scroll
 
+-- TODO pattern "\/\"
     --TODO XLat support
     --TODO Alternative dialog skins
     --TODO  + "overlay mask" mode for minimalistic skin
@@ -234,7 +235,6 @@ function ffind.shifted_case (key, shift, caps)
 ]]
     local changeCase = not not caps == not not shift -- (xor) fucking LUA, extended boolean logic and does not have === operator
 
-    --far.Show(key, shift, caps, changeCase)
     local shiftPair = {
         ["`"] = "~",
         ["1"] = "!",
@@ -256,7 +256,8 @@ function ffind.shifted_case (key, shift, caps)
         [","] = "<",
         ["."] = ">",
         ["/"] = "?",
-        ["BackSlash"] = "|"
+        ["BackSlash"] = "|",
+        ["_"] = "_" -- <- weirdest thing is when you press AltShift- you get AltShift_ instead
     }
     -- cause Lua idioms are soooo simple and intuitive
     return  (shift and shiftPair[key]) or
@@ -328,6 +329,32 @@ function ffind.update_dialog_data (hDlg, pattern, countBefore, countAfter)
     ffind.set_dialog_item_data(hDlg, 4, string.format("%03d",countAfter))
 end
 
+--[[
+Figure out a number of file-item lines a vertical column of a panel can hold
+
+params: pRect - panel rectangle coords, as in PanelInfo.PanelRect returned by GetPanelInfo(..) call
+
+returns: itemLinesPerColumn (integer), panelLinesSkipTop (integer), panelLinesSkipBottom (integer)
+]]
+function ffind.get_lines_per_column(pRect)
+    local panelLinesSkipTop = 0
+    local panelLinesSkipBottom = 0
+
+	local obj = far.CreateSettings("far")
+	if (obj:Get(_F.FSSF_PANELLAYOUT, "ColumnTitles", FST_DATA) > 0) then
+		panelLinesSkipTop = 1
+	end
+	if (obj:Get(_F.FSSF_PANELLAYOUT, "StatusLine", FST_DATA) > 0) then
+		panelLinesSkipBottom = 2
+	end
+	far.FreeSettings ()
+
+    --how many item lines fit in panel (by height)
+    return 	pRect.bottom - pRect.top -1 -panelLinesSkipTop -panelLinesSkipBottom,
+    		panelLinesSkipTop,
+            panelLinesSkipBottom;
+end
+
 --[[ get new position of the dialog to be on a side of active panel across the new cursor position
 note: will work properly only after panel was scrolled to make newPos visible.
 
@@ -339,26 +366,20 @@ function ffind.calc_new_sidestick_dialog_coords(hDlg)
     local topItem = panel.GetPanelInfo(nil,1).TopPanelItem
     local curItem = panel.GetPanelInfo(nil,1).CurrentItem
 
-    --TODO check panel settings for "Show column titles" (+1) and "Show info line" (+2)
-    --far:config
---  Panel.Layout.ColumnTitles
---  Panel.Layout.StatusLine
-    local panelLinesUsedForOtherInfo = 3      -- magical constant
-
-    local X
+    local x
     if (bit.band(panel.GetPanelInfo(nil,0).Flags, _F.PFLAGS_PANELLEFT) >0) then
         -- passive on the left side
-        X = pRect.right-width+1
+        x = pRect.right-width+1
     else
-        X = pRect.left
+        x = pRect.left
     end
 
     --how many item lines fit in panel (by height)
-    local totalItemLines = pRect.bottom - pRect.top -panelLinesUsedForOtherInfo -1;
+    local itemLinesPerColumn, panelLinesSkipTop = ffind.get_lines_per_column(pRect)
     local overTop = curItem-topItem -- 0+
 
-    local Y = overTop % totalItemLines + 1 + pRect.top
-    return {X = X, Y = Y}
+    local y = overTop % itemLinesPerColumn + panelLinesSkipTop + pRect.top
+    return {X = x, Y = y}
 end
 
 --[[
@@ -372,9 +393,9 @@ function ffind.calc_new_panel_top_item(newPos)
 
     if (newPos ~= panel.GetPanelInfo(nil,1).CurrentItem) then
         local pRect = panel.GetPanelInfo(nil,1).PanelRect;
-        local totalItemLines = pRect.bottom - pRect.top -4; --how many item lines fit in panel (by height)
+        local totalItemLines = ffind.get_lines_per_column(pRect)
         if (defaultScrolling) then
-            -- center current element if scrolling is possible (FAR standard behavior)
+            -- center current element in the 1st column if scrolling is possible (FAR standard behavior)
             newTopItem = newPos-totalItemLines/2
         else
             -- alternative scrolling
@@ -392,6 +413,7 @@ function ffind.calc_new_panel_top_item(newPos)
             end
 
             totalItemLines = totalItemLines * numNameColumns
+
             -- ==0 if newPos already in center, ==0.5 if newPos on the edge of the panel
             -- >0.5 if off screen
             local relOffset = (newTopItem + totalItemLines/2 - newPos)/totalItemLines
@@ -448,6 +470,9 @@ function ffind.process_input(hDlg, inputRec)
         newPattern = pattern:sub(1, #pattern-1)
         searchDirection = "current"
 
+--    elseif (pattern:sub(-1,-1) == '\\' or pattern:sub(-1,-1) == '/') then
+    	-- ignoring characters after slashes (slashes can only end line)
+--    	return true
     elseif (dryKey and #dryKey==1) then
         if (pattern:sub(-1,-1) == '*' and ((dryKey=='*') or (dryKey=='?'))) then
             return true -- ignore '**' and '*?'
