@@ -62,7 +62,7 @@ Params: hDlg,
 returns: true on success
          false on failure
 ]]
-function ffind.set_dialog_item_data(hDlg, itemNum, data)
+local function set_dialog_item_data(hDlg, itemNum, data)
     local inputField = far.GetDlgItem(hDlg, itemNum);
     if (not inputField) then return false end
     inputField[10] = data;
@@ -77,7 +77,7 @@ params: hDlg,
 returns: value
          nil on falure
 ]]
-function ffind.get_dialog_item_data(hDlg, itemNum)
+local function get_dialog_item_data(hDlg, itemNum)
     local inputField = far.GetDlgItem(hDlg, itemNum);
     return inputField and inputField[10];
 end
@@ -88,7 +88,7 @@ Get a list of items visible on active panel
 returns: array of PluginPanelItem: {[1] = item1, [2] = item2...}
          this array might be empty  {}
 ]]
-function ffind.get_apanel_items()
+local function get_apanel_items()
     local totalItems = panel.GetPanelInfo(nil,1).ItemsNumber;
     local items = {}
     for i = 1,totalItems do
@@ -104,8 +104,7 @@ Params: pattern (string)
 
 returns: regexObject (compiled pattern), onlyFolders(boolean)
 ]]
-
-function ffind.prepare_pattern(pattern)
+local function prepare_pattern(pattern)
     local regexPattern = pattern
     local onlyFolders = false
 
@@ -138,11 +137,11 @@ params: pattern of search (string),
 
 returns: newPositionIndex(nil/false or integer), countBefore, countAfter
 ]]
-function ffind.get_new_position(pattern, direction)
-    local items = ffind.get_apanel_items()
+local function get_new_cursor_position(pattern, direction)
+    local items = get_apanel_items()
     local refInd = panel.GetPanelInfo(nil,1).CurrentItem;
 
-    local regexObject, onlyFolders = ffind.prepare_pattern(pattern)
+    local regexObject, onlyFolders = prepare_pattern(pattern)
 	local countBefore, countAfter = 0, 0
 	local firstMatched, lastMatched, previousMatched, nextMatched, currentMatched = nil, nil, nil, nil, nil
 
@@ -209,14 +208,14 @@ params: pattern (string), this function will give results different from 'get_ne
 
 returns: newPositionIndex(nil or integer), countBefore, countAfter
 ]]
-function ffind.get_new_position_shorter_start(pattern, direction)
+local function get_new_cursor_position_shorter_start(pattern, direction)
     if (direction ~= "current_or_next" or pattern:len() < 2) then
-        return ffind.get_new_position(pattern, direction)
+        return get_new_cursor_position(pattern, direction)
     end
 
-    local items = ffind.get_apanel_items()
+    local items = get_apanel_items()
     local itemIndex, matchDistance, countBefore, countTotal = nil, -1, 0, 0
-    local regexObject, onlyFolders = ffind.prepare_pattern(pattern)
+    local regexObject, onlyFolders = prepare_pattern(pattern)
 
     local refInd = panel.GetPanelInfo(nil,1).CurrentItem;
     local refStart = regexObject:find(items[refInd].FileName, 1)    -- current item
@@ -241,10 +240,11 @@ function ffind.get_new_position_shorter_start(pattern, direction)
 end
 
 --[[
-Converts a key to proper case with regards to CAPSLOCK status and whether SHIFT was pressed.
-This is called bc key combos with Alt do not consume shift.
+Simulates a new key pressed combo based on current key pressed, only without Alt being pressed.
+
+params: inprec - current key event
 ]]
-function ffind.un_alt (inprec)
+local function un_alt (inprec)
 -- work around to drop alt ( I failed to make mapping vk -> char work, so this is what is left)
     local vAlt = 0
     local sAlt = 0
@@ -273,24 +273,24 @@ Convert InputRecord to a key name relevant to this dialog input
 
 params: inputRecord
 
-returns: keyName as if pressed without Alt and in eng keyb layout (shift is consumed or dropped)
-         nil if key is to be ignored, dialog closed and key sent to panel
-         false if key is to have default dialog processing, like a bare modifier combo (i.e RAltShift)
+returns: keyName - as if pressed without Alt
 
-         + some special keyNames:
+         + some special key names:
          "CtrlV" in response to "R?CtrlV" or "ShiftIns"
          "Alt(Up|Down|Home|End)" in response to "R?Alt(Up|Down|Home|End)"
          "\" for BackSlash
-         "~" if the key is to be ignored
+         "Ignore" if the key is to be ignored
+         "Default" for default processing of the key by Far
+         "Terminate" to close this dialog and pass the key pressed through to Far
 ]]
-function ffind.get_dry_key (inprec)
+local function get_dry_key (inprec)
     -- OK. First draft: ignoring XLat and multilangual complications
     local ctrl,alt,shift,key = far.InputRecordToName (inprec, true)
     local comboKey = far.InputRecordToName (inprec)
 
 	-- bare modifier or *lock key
     if (not key or key=="CapsLock" or key=="NumLock" or key=="ScrollLock") then
-    	return false
+    	return "Default"
     end
 
     if (comboKey=="ShiftIns" or comboKey=="CtrlV" or comboKey=="RCtrlV" or
@@ -310,27 +310,27 @@ function ffind.get_dry_key (inprec)
 
     -- need to filter out all non-filename keypresses, like F1 or LeftArrow, Tab
 	if (inprec.UnicodeChar:byte()==0 or key=="Enter" or key=="Tab") then
-		return nil
+		return "Terminate"
 	end
 
 
     if (not alt) then return key end -- return Key if ShiftKey or Key
 
     -- below this we have only Alt(Shift)?Key combinations
-     ffind.un_alt (inprec)
-     return "IgnoreIt"
+     un_alt (inprec)
+     return "Ignore"
 end
 
 --[[
 This will put given values to dialog elements
 params: hDlg, pattern, countBefore, countAfter
 ]]
-function ffind.update_dialog_data (hDlg, pattern, countBefore, countAfter)
+local function update_dialog_data (hDlg, pattern, countBefore, countAfter)
     if ( countAfter > 999 ) then countAfter = 999 end
     if ( countBefore > 999 ) then countBefore = 999 end
-    ffind.set_dialog_item_data(hDlg, 2, pattern);
-    ffind.set_dialog_item_data(hDlg, 3, string.format("%03d",countBefore))
-    ffind.set_dialog_item_data(hDlg, 4, string.format("%03d",countAfter))
+    set_dialog_item_data(hDlg, 2, pattern);
+    set_dialog_item_data(hDlg, 3, string.format("%03d",countBefore))
+    set_dialog_item_data(hDlg, 4, string.format("%03d",countAfter))
 end
 
 --[[
@@ -340,7 +340,7 @@ params: pRect - panel rectangle coords, as in PanelInfo.PanelRect returned by Ge
 
 returns: itemLinesPerColumn (integer), panelLinesSkipTop (integer), panelLinesSkipBottom (integer)
 ]]
-function ffind.get_lines_per_column(pRect)
+local function get_lines_per_column(pRect)
     local panelLinesSkipTop = 0
     local panelLinesSkipBottom = 0
 
@@ -365,7 +365,7 @@ note: will work properly only after panel was scrolled to make newPos visible.
 params: hDlg (dialog handle)
 returns: {X=integer, Y=integer} (table with dialog's left-top coordinates)
 ]]
-function ffind.calc_new_sidestick_dialog_coords(hDlg)
+local function calc_new_side_dialog_coords(hDlg)
     local pRect = panel.GetPanelInfo(nil,0).PanelRect; -- passive panel!
     local topItem = panel.GetPanelInfo(nil,1).TopPanelItem
     local curItem = panel.GetPanelInfo(nil,1).CurrentItem
@@ -379,7 +379,7 @@ function ffind.calc_new_sidestick_dialog_coords(hDlg)
     end
 
     --how many item lines fit in panel (by height)
-    local itemLinesPerColumn, panelLinesSkipTop = ffind.get_lines_per_column(pRect)
+    local itemLinesPerColumn, panelLinesSkipTop = get_lines_per_column(pRect)
     local overTop = curItem-topItem -- 0+
 
     local y = overTop % itemLinesPerColumn + panelLinesSkipTop + pRect.top
@@ -392,12 +392,12 @@ Panel scrolling and cursor position calculation subroutine
 params: newPos (index of the item to move cursor to)
 returns: newTopItem (top element after scrolling)
 ]]
-function ffind.calc_new_panel_top_item(newPos)
+local function calc_new_panel_top_item(newPos)
     local newTopItem = panel.GetPanelInfo(nil,1).TopPanelItem -- default to current top item
 
     if (newPos ~= panel.GetPanelInfo(nil,1).CurrentItem) then
         local pRect = panel.GetPanelInfo(nil,1).PanelRect;
-        local totalItemLines = ffind.get_lines_per_column(pRect)
+        local totalItemLines = get_lines_per_column(pRect)
         if (defaultScrolling) then
             -- center current element in the 1st column if scrolling is possible (FAR standard behavior)
             newTopItem = newPos-totalItemLines/2
@@ -450,16 +450,18 @@ params: hDlg, inputRec (InputRecord table)
 returns: true or false to be returned to Far from dlgProc
 ]]
 function ffind.process_input(hDlg, inputRec)
-    local dryKey = ffind.get_dry_key(inputRec)
-    local pattern = ffind.get_dialog_item_data(hDlg, 2)
+    local dryKey = get_dry_key(inputRec)
+    local pattern = get_dialog_item_data(hDlg, 2)
     local newPattern = pattern
 
     local searchDirection = "current_or_next" -- default search mode
 
-    -- care: dryKey might be nil or false
-    -- Lua, where's my switch statement? I miss it so hard.
-    if (dryKey == false) then
-        return false -- do default whatever
+    -- omfg. LUA HAS NO SWITCH STATEMENT... Shit got serious...
+    if (dryKey == "Default") then
+        return false
+    elseif (dryKey == "Ignore") then
+    	return true
+
     elseif (dryKey == "AltHome") then
         searchDirection = "first"
     elseif (dryKey == "AltDown") then
@@ -468,15 +470,12 @@ function ffind.process_input(hDlg, inputRec)
         searchDirection = "prev"
     elseif (dryKey == "AltEnd") then
         searchDirection = "last"
+
     elseif (dryKey == "Space") then
         newPattern = newPattern.." "
     elseif (dryKey == "BS") then
         newPattern = pattern:sub(1, -2)
         searchDirection = "current"
-
- -- TODO : TEMP
-    elseif (drykey == "IgnoreIt") then
-    	return true
     elseif (dryKey == "CtrlV") then -- special occasion covering all insertion keys
         local paste = far.PasteFromClipboard ()
         _G[ffind.dlgGUID].dontBlinkPlease = true
@@ -484,13 +483,13 @@ function ffind.process_input(hDlg, inputRec)
             ffind.process_input (hDlg, far.NameToInputRecord(paste:sub(i,i)))
         end
         _G[ffind.dlgGUID].dontBlinkPlease = nil
-        newPattern = ffind.get_dialog_item_data(hDlg, 2) .. paste:sub(-1,-1) -- process the final char as usuall input
+        newPattern = get_dialog_item_data(hDlg, 2) .. paste:sub(-1,-1) -- process the final char as usuall input
 
     elseif (dryKey == "Esc") then
         _G[ffind.dlgGUID].dieSemaphor = true;
         return false -- close naturally by Esc
 
-    elseif (dryKey) then
+    elseif (type(dryKey) == "string" and dryKey:len() == 1) then
         if (pattern:sub(-1,-1) == '*' and ((dryKey=='*') or (dryKey=='?'))) then
             return true -- ignore '**' and '*?'
         end
@@ -506,27 +505,27 @@ function ffind.process_input(hDlg, inputRec)
         return true
     end
 
+    -- pattern was modified. now search for newPattern in file list
     local newPos, countBefore, countAfter
 
     if (shorterSearch) then
-        newPos, countBefore, countAfter = ffind.get_new_position_shorter_start(newPattern, searchDirection)
+        newPos, countBefore, countAfter = get_new_cursor_position_shorter_start(newPattern, searchDirection)
     else
-        newPos, countBefore, countAfter = ffind.get_new_position(newPattern, searchDirection)
+        newPos, countBefore, countAfter = get_new_cursor_position(newPattern, searchDirection)
     end
-
 
     if (not newPos) then
         return true; -- new input does not match anything, ignore this key input
     end
 
-    ffind.update_dialog_data(hDlg, newPattern, countBefore, countAfter)
+    update_dialog_data(hDlg, newPattern, countBefore, countAfter)
 
-    local newTopItem = ffind.calc_new_panel_top_item(newPos)
+    local newTopItem = calc_new_panel_top_item(newPos)
     panel.RedrawPanel(nil, 1, {CurrentItem=newPos, TopPanelItem=newTopItem})
 
     -- must move dialog AFTER panel scrolled to the element
     if (sideStickPosition) then
-        far.SendDlgMessage(hDlg, _F.DM_MOVEDIALOG, 1, ffind.calc_new_sidestick_dialog_coords(hDlg))
+        far.SendDlgMessage(hDlg, _F.DM_MOVEDIALOG, 1, calc_new_side_dialog_coords(hDlg))
     end
 
     if (not _G[ffind.dlgGUID].dontBlinkPlease) then
@@ -548,7 +547,6 @@ function ffind.dlg_proc (hDlg, msg, param1, param2)
         return
     end
 
-    -- omfg. LUA HAS NO SWITCH STATEMENT... Shit got serious...
     if (msg == _F.DN_CTLCOLORDLGITEM) then
         if (param1==3) then param2[1].ForegroundColor = 10; return param2; end
         if (param1==4) then param2[1].ForegroundColor = 12; return param2; end
@@ -568,8 +566,10 @@ Dialog is placed in the bottom-center of an active panel. If it does not fit the
 "snapped" to a closer edge of the screen
 
 Params: width, height - dialog size
+
+returns: left,top,right,bottom
 ]]
-function ffind.get_dialog_rect(width, height)
+local function get_dialog_rect(width, height)
     local pRect = panel.GetPanelInfo(nil,1).PanelRect;
     local farRect = far.AdvControl (_F.ACTL_GETFARRECT, 0, 0)
     local bottom = pRect.bottom + height - 1
@@ -601,7 +601,7 @@ function ffind.create_dialog()
 --[[6]]        ,{_F.DI_TEXT       ,width-5,2,width-5,2,0,0,0,0,""}
 	}
 
-    local left,top,right,bottom = ffind.get_dialog_rect(width,3)
+    local left,top,right,bottom = get_dialog_rect(width,3)
 	local hDlg = far.DialogInit(ffind.dlgGUID,left,top,right,bottom,nil,dialogItems,
 		_F.FDLG_KEEPCONSOLETITLE + _F.FDLG_SMALLDIALOG + _F.FDLG_NODRAWSHADOW ,
         ffind.dlg_proc)

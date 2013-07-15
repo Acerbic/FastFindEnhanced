@@ -28,7 +28,7 @@ function export.Open( openFrom, Guid, Item)
 	-- initialize dialog with input string
     if (precedingAst) then
     	local pattern = "*"
-	    while (#pattern >0) do
+	    while (pattern:len() >0) do
 	        local inprec = far.NameToInputRecord(pattern:sub(1,1))
 	        pattern = pattern:sub(2,-1)
 	        ffind.process_input(hDlg, inprec)
