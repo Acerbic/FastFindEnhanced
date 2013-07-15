@@ -1,9 +1,38 @@
-﻿local ffind = {}
+﻿package.loaded.le = nil
+local le = require "le";
+
+  	local ffi = require("ffi")
+	ffi.cdef[[
+	long GetKeyboardLayout(
+  		long idThread
+	);
+
+	void keybd_event(
+	  unsigned char bVk,
+	  unsigned char bScan,
+	  unsigned long dwFlags,
+	  unsigned long dwExtraInfo
+	);
+
+	unsigned int GetKeyState(unsigned int nVirtKey);
+
+	unsigned int MapVirtualKeyW(
+  		unsigned int uCode,
+  		unsigned int uMapType
+	);
+
+	unsigned int MapVirtualKeyExW(
+  		unsigned int uCode,
+  		unsigned int uMapType,
+  		long dwhkl
+	);
+	]]
+
+local ffind = {}
 
 ffind.dlgGUID="{ACE12B1C-5FC7-E11F-1337-FA575EA12C14}"       -- fuck teh police
 
 local _F = far.Flags
-local bit = require "bit64"
 local width = 36; --dialog width
 
 local shorterSearch = true --opt
@@ -12,8 +41,10 @@ local sideStickPosition = true --opt
 local precedingAst = true; -- opt
 local forceScrollEdge = 0.08 -- opt [0.0-0.5] 0.5 for always(default) scroll, 0.0 for minimum scroll
 
--- TODO pattern "\/\"
+
+-- note that search (shorter or not) is different in that it process FULL name, where possible, not only the part after last "/"
     --TODO XLat support
+    --TODO predict-skipping
     --TODO Alternative dialog skins
     --TODO  + "overlay mask" mode for minimalistic skin
 
@@ -67,121 +98,24 @@ function ffind.get_apanel_items()
 end
 
 --[[
-Matches items list against a pattern
+Compiles a search pattern and parses it for "onlyFolders" flag
 
-params: pattern (string),
-		items (array),
-		referenceItemIndex
+Params: pattern (string)
 
-returns: indexesBefore, itemsBefore, indexesAfter, itemsAfter, isReferenceMatched (boolean)
-            note: first 4 returning variables are arrays ( {integer => value,... } ).
+returns: regexObject (compiled pattern), onlyFolders(boolean)
 ]]
-function ffind.get_matched_items(pattern, items, referenceItemInd)
-    local itemsBefore, itemsAfter = {}, {}
-    local idxBefore, idxAfter = {}, {}
-    local referenceMatching = false
 
-    local onlyFolders = false
-    if (pattern:sub(-2, -2) == "\\" or pattern:sub(-2, -2)=="/") then
-        pattern = pattern:sub(1,-3).."*"
-        onlyFolders = true;
-    end
-
-    -- processing in current panel sort order
-    for i,item in ipairs(items) do
-        if (item.FileName~=".." and far.ProcessName(_F.PN_CMPNAME, pattern, item.FileName)
-            and (not onlyFolders or item.FileAttributes:find("d"))) then
-
-            if (i<referenceItemInd) then
-                itemsBefore[#itemsBefore+1] = item; -- really? LUA has no simple way to add an element with auto indexing..
-                idxBefore[#idxBefore+1] = i;
-            elseif (i==referenceItemInd) then
-                referenceMatching = true;
-            else
-                idxAfter[#idxAfter+1] = i;
-                itemsAfter[#itemsAfter+1] = item
-            end
-        end
-    end
-
-    return idxBefore, itemsBefore, idxAfter, itemsAfter, referenceMatching;
-end
-
-
---[[
-Calculate new cursor position in the active panel
-params: pattern of search (string),
-		direction of search (one of values: "current_or_next", "current", "next", "first", "last", "prev")
-
-returns: newPositionIndex(nil or integer), countBefore, countAfter
-]]
-function ffind.get_new_position(pattern, direction)
-    local items = ffind.get_apanel_items()
-    local refInd;
-
-    refInd = panel.GetPanelInfo(nil,1).CurrentItem;
-
-    local before, _ , after, _, refMatch = ffind.get_matched_items(pattern, items, refInd)
-    if (refMatch and (direction=="current_or_next" or direction=="current")) then return refInd, #before, #after end
-
-    if (refMatch) then before[#before+1] = refInd end
-    if (direction=="current_or_next" or direction=="next") then
-        if (#after>0) then                -- matching to the next item if possible
-            return after[1], #before, #after-1
-        elseif (#before>0) then            -- first from top
-            return before[1], 0, #before-1
-        end
-    elseif (direction=="last") then
-        if (#after>0) then                -- matching to the last item if possible
-            return after[#after], #before+#after-1, 0
-        elseif (#before>0) then
-            return before[#before], #before+#after-1, 0
-        end
-    elseif (direction=="first") then
-        if (#before>0) then                -- matching to the top item if possible
-            return before[1], 0, #before+#after-1
-        elseif (#after>0) then
-            return after[1], 0, #before+#after-1
-        end
-    elseif (direction=="prev") then
-        local x=0; if (refMatch) then x=1 end
-        if (#before>x) then
-            return before[#before-x], #before-1-x, #after+x
-        elseif (#after>0) then
-            return after[#after], #after-1+x, 0
-        elseif (refMatch) then
-            return refInd, 0, 0
-        end
-    end
-    return nil, 0, 0; -- no matching at all
-end
-
---[[
-A variant of "get_new_position" with precedence given to files with matching portion
-closer to the beginning of the filename. Only has effect if direction is "current_or_next"
-(initial search), otherwise it calls get_new_position.
-
-params: pattern (string), must be a string of length 1 or more and its last char must be "*"
-		direction of search (one of values: "current_or_next", "next", "current", "first", "last", "prev")
-
-returns: newPositionIndex(nil or integer), countBefore, countAfter
-]]
-function ffind.get_new_position_shorter_start(pattern, direction)
-    if (direction ~= "current_or_next" or #pattern<2) then
-        return ffind.get_new_position(pattern, direction)
-    end
-
-    local items = ffind.get_apanel_items()
-    local itemIndex, matchDistance, countBefore, countTotal = nil, -1, 0, 0
+function ffind.prepare_pattern(pattern)
     local regexPattern = pattern
     local onlyFolders = false
 
-    if (regexPattern:sub(-2, -2) == "\\" or regexPattern:sub(-2, -2)=="/") then
-        regexPattern = regexPattern:sub(1,-3).."*"
+    -- special meaning of a single trailing slash or backslash
+    if (regexPattern:sub(-1, -1) == "\\" or regexPattern:sub(-1, -1)=="/") then
+        regexPattern = regexPattern:sub(1,-2)
         onlyFolders = true;
     end
 
-    regexPattern = regex.gsub(regexPattern, "([()|^$.[{+\\]\\/])","\\%1")
+    regexPattern = regex.gsub(regexPattern, "([()|^$.[{+\\]\\/\\\\])","\\%1")
     regexPattern = regex.gsub(regexPattern,"[?]",".")
     regexPattern = regex.gsub(regexPattern,"[*]",".*")
 
@@ -193,7 +127,96 @@ function ffind.get_new_position_shorter_start(pattern, direction)
         regexPattern = "^"..regexPattern
     end
 
-    local regexObject = regex.new (regexPattern, "i")               --compile
+
+    return regex.new(regexPattern, "i"), onlyFolders
+end
+
+--[[
+Calculate new cursor position in the active panel
+params: pattern of search (string),
+		direction of search (one of values: "current_or_next", "current", "next", "first", "last", "prev")
+
+returns: newPositionIndex(nil/false or integer), countBefore, countAfter
+]]
+function ffind.get_new_position(pattern, direction)
+    local items = ffind.get_apanel_items()
+    local refInd = panel.GetPanelInfo(nil,1).CurrentItem;
+
+    local regexObject, onlyFolders = ffind.prepare_pattern(pattern)
+	local countBefore, countAfter = 0, 0
+	local firstMatched, lastMatched, previousMatched, nextMatched, currentMatched = nil, nil, nil, nil, nil
+
+    for i,item in ipairs(items) do
+        local start = regexObject:find(item.FileName, 1)
+        if (start and item.FileName~=".." and (not onlyFolders or item.FileAttributes:find("d"))) then
+        	firstMatched = firstMatched or i
+        	lastMatched = i
+            if (i<refInd) then
+        		previousMatched = i
+                countBefore = countBefore +1
+            elseif (i>refInd) then
+                countAfter = countAfter +1
+        		nextMatched = nextMatched or i
+            else
+            	currentMatched = i
+            end
+        end
+    end
+
+    if (not firstMatched) then return nil, 0, 0 end  -- no matching at all
+
+    -- below this line firstMatched is not nil and lastMatched is not nil
+
+    local countTotal = countBefore + countAfter + (currentMatched and 1 or 0)
+
+    if (currentMatched and (direction=="current_or_next" or direction=="current")) then
+    	return currentMatched, countBefore, countAfter
+
+    elseif (direction=="current_or_next" or direction=="next") then
+
+    	if (nextMatched) then
+    		return nextMatched, countTotal - countAfter , countAfter -1
+    	else
+    		return firstMatched, 0, countTotal -1  --rollover
+    	end
+
+    elseif (direction=="prev") then
+
+    	if (previousMatched) then
+    		return previousMatched, countBefore -1, countTotal - countBefore
+        else
+    		return lastMatched, countTotal -1, 0   --rollover
+    	end
+
+    elseif (direction=="last" and lastMatched) then
+    	return lastMatched, countTotal -1, 0
+
+    elseif (direction=="first" and firstMatched) then
+   		return firstMatched, 0, countTotal -1
+
+    end
+
+    return nil, 0, 0   -- direction not recognized
+end
+
+--[[
+A variant of "get_new_position" with precedence given to files with matching portion
+closer to the beginning of the filename. Only has effect if direction is "current_or_next"
+(initial search), otherwise it calls get_new_position.
+
+params: pattern (string), this function will give results different from 'get_new_position' only if pattern starts with '*'
+		direction of search (one of values: "current_or_next", "next", "current", "first", "last", "prev")
+
+returns: newPositionIndex(nil or integer), countBefore, countAfter
+]]
+function ffind.get_new_position_shorter_start(pattern, direction)
+    if (direction ~= "current_or_next" or pattern:len() < 2) then
+        return ffind.get_new_position(pattern, direction)
+    end
+
+    local items = ffind.get_apanel_items()
+    local itemIndex, matchDistance, countBefore, countTotal = nil, -1, 0, 0
+    local regexObject, onlyFolders = ffind.prepare_pattern(pattern)
 
     local refInd = panel.GetPanelInfo(nil,1).CurrentItem;
     local refStart = regexObject:find(items[refInd].FileName, 1)    -- current item
@@ -214,58 +237,34 @@ function ffind.get_new_position_shorter_start(pattern, direction)
         end
     end
     return itemIndex, countBefore, countTotal - countBefore -1
+
 end
 
 --[[
 Converts a key to proper case with regards to CAPSLOCK status and whether SHIFT was pressed.
 This is called bc key combos with Alt do not consume shift.
-
-params: key, if alphabetic then key is in upper case
-		shift (nil or "Shift")
-		caps (0 or 1)
 ]]
---TODO XLAT
-function ffind.shifted_case (key, shift, caps)
---[[
-    shift caps input    output
-      0		0  	A 3   	a 3
-      0		1	A 3		A 3
-      1		0	A 3		A #
-      1		1	A 3		a #
-]]
-    local changeCase = not not caps == not not shift -- (xor) fucking LUA, extended boolean logic and does not have === operator
+function ffind.un_alt (inprec)
+-- work around to drop alt ( I failed to make mapping vk -> char work, so this is what is left)
+    local vAlt = 0
+    local sAlt = 0
+    local ext = 0
+	if (bit64.band(ffi.C.GetKeyState(0xA4), 0x80) > 0) then
+		vAlt = 0xA4
+		sAlt = ffi.C.MapVirtualKeyW(0xA4, 0)
+	end
+	if (bit64.band(ffi.C.GetKeyState(0xA5), 0x80) > 0) then
+		vAlt = 0xA5
+		sAlt = ffi.C.MapVirtualKeyW(0xA5, 0)
+		ext = 1
+	end
 
-    local shiftPair = {
-        ["`"] = "~",
-        ["1"] = "!",
-        ["2"] = "@",
-        ["3"] = "#",
-        ["4"] = "$",
-        ["5"] = "%",
-        ["6"] = "^",
-        ["7"] = "&",
-        ["8"] = "*",
-        ["9"] = "(",
-        ["0"] = ")",
-        ["-"] = "_",
-        ["="] = "+",
-        ["["] = "{",
-        ["]"] = "}",
-        [";"] = ":",
-        ["'"] = '"',
-        [","] = "<",
-        ["."] = ">",
-        ["/"] = "?",
-        ["BackSlash"] = "|",
-        ["_"] = "_" -- <- weirdest thing is when you press AltShift- you get AltShift_ instead
-    }
-    -- cause Lua idioms are soooo simple and intuitive
-    return  (shift and shiftPair[key]) or
-    		(#key==1 and far.LIsAlpha(key) and
-    			(changeCase and key:lower() or
-    			key)
-    		) or
-    		((shift or '')..key)
+	ffi.C.keybd_event(vAlt, sAlt, 2+ext, 0) -- ALT  unpress
+
+	ffi.C.keybd_event(inprec.VirtualKeyCode, inprec.VirtualScanCode, 0, 0)
+	ffi.C.keybd_event(inprec.VirtualKeyCode, inprec.VirtualScanCode, 2, 0)
+
+	ffi.C.keybd_event(vAlt, sAlt, 0+ext, 0) -- ALT repress
 end
 
 
@@ -282,13 +281,18 @@ returns: keyName as if pressed without Alt and in eng keyb layout (shift is cons
          "CtrlV" in response to "R?CtrlV" or "ShiftIns"
          "Alt(Up|Down|Home|End)" in response to "R?Alt(Up|Down|Home|End)"
          "\" for BackSlash
+         "~" if the key is to be ignored
 ]]
 function ffind.get_dry_key (inprec)
     -- OK. First draft: ignoring XLat and multilangual complications
     local ctrl,alt,shift,key = far.InputRecordToName (inprec, true)
     local comboKey = far.InputRecordToName (inprec)
 
-    if (not key) then return false end -- bare modifier
+	-- bare modifier or *lock key
+    if (not key or key=="CapsLock" or key=="NumLock" or key=="ScrollLock") then
+    	return false
+    end
+
     if (comboKey=="ShiftIns" or comboKey=="CtrlV" or comboKey=="RCtrlV" or
         comboKey=="ShiftNumpad0") then
         return "CtrlV"
@@ -301,20 +305,20 @@ function ffind.get_dry_key (inprec)
     if (alt and not shift and ((key=="Up") or (key=="Down") or (key=="Home") or (key=="End"))) then
         return "Alt"..key
     end
-    if (key == "Multiply") then return "*" end -- (R?Alt)?(Shift)?num"*"
+    if (key == "Multiply") then return "*" end -- (R?Alt)?(Shift)?numMul
     if (not shift and key == "BackSlash") then return "\\" end -- (R?Alt)?BackSlash
+
+    -- need to filter out all non-filename keypresses, like F1 or LeftArrow, Tab
+	if (inprec.UnicodeChar:byte()==0 or key=="Enter" or key=="Tab") then
+		return nil
+	end
 
 
     if (not alt) then return key end -- return Key if ShiftKey or Key
 
     -- below this we have only Alt(Shift)?Key combinations
-
-	local ffi = require("ffi")
-	ffi.cdef[[ int GetKeyState(int nVirtKey); ]]
-
-	local capslockState = ffi.C.GetKeyState(20) -- VK_CAPITAL code
-
-    return ffind.shifted_case (key, shift, capslockState)
+     ffind.un_alt (inprec)
+     return "IgnoreIt"
 end
 
 --[[
@@ -367,7 +371,7 @@ function ffind.calc_new_sidestick_dialog_coords(hDlg)
     local curItem = panel.GetPanelInfo(nil,1).CurrentItem
 
     local x
-    if (bit.band(panel.GetPanelInfo(nil,0).Flags, _F.PFLAGS_PANELLEFT) >0) then
+    if (bit64.band(panel.GetPanelInfo(nil,0).Flags, _F.PFLAGS_PANELLEFT) >0) then
         -- passive on the left side
         x = pRect.right-width+1
     else
@@ -467,30 +471,31 @@ function ffind.process_input(hDlg, inputRec)
     elseif (dryKey == "Space") then
         newPattern = newPattern.." "
     elseif (dryKey == "BS") then
-        newPattern = pattern:sub(1, #pattern-1)
+        newPattern = pattern:sub(1, -2)
         searchDirection = "current"
 
---    elseif (pattern:sub(-1,-1) == '\\' or pattern:sub(-1,-1) == '/') then
-    	-- ignoring characters after slashes (slashes can only end line)
---    	return true
-    elseif (dryKey and #dryKey==1) then
+ -- TODO : TEMP
+    elseif (drykey == "IgnoreIt") then
+    	return true
+    elseif (dryKey == "CtrlV") then -- special occasion covering all insertion keys
+        local paste = far.PasteFromClipboard ()
+        _G[ffind.dlgGUID].dontBlinkPlease = true
+        for i = 1, paste:len()-1 do --all but the final one
+            ffind.process_input (hDlg, far.NameToInputRecord(paste:sub(i,i)))
+        end
+        _G[ffind.dlgGUID].dontBlinkPlease = nil
+        newPattern = ffind.get_dialog_item_data(hDlg, 2) .. paste:sub(-1,-1) -- process the final char as usuall input
+
+    elseif (dryKey == "Esc") then
+        _G[ffind.dlgGUID].dieSemaphor = true;
+        return false -- close naturally by Esc
+
+    elseif (dryKey) then
         if (pattern:sub(-1,-1) == '*' and ((dryKey=='*') or (dryKey=='?'))) then
             return true -- ignore '**' and '*?'
         end
         newPattern = pattern..dryKey
 
-    elseif (dryKey == "CtrlV") then -- special occasion covering all insertion keys
-        local paste = far.PasteFromClipboard ()
-        _G[ffind.dlgGUID].dontBlinkPlease = true
-        for i = 1,#paste-1 do --all but the final one
-            ffind.process_input (hDlg, far.NameToInputRecord(paste:sub(i,i)))
-        end
-        _G[ffind.dlgGUID].dontBlinkPlease = nil
-        newPattern = ffind.get_dialog_item_data(hDlg, 2) .. paste:sub(#paste,#paste) -- process the final char as usuall input
-
-    elseif (dryKey == "Esc") then
-        _G[ffind.dlgGUID].dieSemaphor = true;
-        return false -- close naturally by Esc
     else
         -- close dialog on every other key  or dryKey == nil
         -- and pass the key over to the panel
@@ -504,9 +509,9 @@ function ffind.process_input(hDlg, inputRec)
     local newPos, countBefore, countAfter
 
     if (shorterSearch) then
-        newPos, countBefore, countAfter = ffind.get_new_position_shorter_start(newPattern.."*", searchDirection)
+        newPos, countBefore, countAfter = ffind.get_new_position_shorter_start(newPattern, searchDirection)
     else
-        newPos, countBefore, countAfter = ffind.get_new_position(newPattern.."*", searchDirection)
+        newPos, countBefore, countAfter = ffind.get_new_position(newPattern, searchDirection)
     end
 
 

@@ -43,7 +43,9 @@ function export.Open( openFrom, Guid, Item)
     far.DialogFree(hDlg);
 
     if (_G[ffind.dlgGUID].resendKey) then
-    	far.MacroPost ('Keys("'.._G[ffind.dlgGUID].resendKey..'")') -- note quotes usage, resendKey may contain <'> but not <"> ( <"> is only generated when Alt and Control are not pressed, and is checked agains filename inside a dialog )
+    	far.MacroPost ('Keys("'.._G[ffind.dlgGUID].resendKey..'")') -- note quotes usage,
+    	--   resendKey may contain <'> but not <"> ( <"> is only generated when Alt and Control
+    	--   are not pressed, and is checked against filenames inside the dialog)
     end
 
     _G[ffind.dlgGUID] = nil;
