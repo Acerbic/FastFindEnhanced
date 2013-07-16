@@ -269,8 +269,13 @@ local function un_alt (inprec)
 	end
 
 -- my original plan was to convert Alt[Shift]Key -> char in-house with respect to CAPS and
---   current keyboard locale.
+--   current keyboard locale. BUT I faced a number of issues:
 
+--	 GetKeyboardLayout() doesn't read a correct layout from "current" thread. Instead, you must  locate a hosting 'conhost.exe' thread (there is code for that on the net, but its not trivial and possibly need UAC appoval)
+--   (alternatively) I was thinking about using 'lua-macro-code-eval' call to get Far.KbdLayout() of MacroAPI kit from macro context of Far execution
+
+--   MapVirtualKeyEx() does not work, seemingly
+--   ToUnicodeEx() translates a key just fine but creates some kind of a leak in LuaMacro, causing Far to crash later
 end
 
 
