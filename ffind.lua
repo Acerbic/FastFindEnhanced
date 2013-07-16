@@ -3,10 +3,6 @@ local le = require "le";
 
   	local ffi = require("ffi")
 	ffi.cdef[[
-	long GetKeyboardLayout(
-  		long idThread
-	);
-
 	void keybd_event(
 	  unsigned char bVk,
 	  unsigned char bScan,
@@ -20,12 +16,6 @@ local le = require "le";
   		unsigned int uCode,
   		unsigned int uMapType
 	);
-
-	unsigned int MapVirtualKeyExW(
-  		unsigned int uCode,
-  		unsigned int uMapType,
-  		long dwhkl
-	);
 	]]
 
 local ffind = {}
@@ -35,6 +25,8 @@ ffind.dlgGUID="{ACE12B1C-5FC7-E11F-1337-FA575EA12C14}"       -- fuck teh police
 local _F = far.Flags
 local width = 36; --dialog width
 
+-- note that search (shorter or not) is different in that it process FULL name, where possible,
+--  not only the part after last "/"
 local shorterSearch = true --opt
 local defaultScrolling = false --opt
 local sideStickPosition = true --opt
@@ -42,8 +34,6 @@ local precedingAst = true; -- opt
 local forceScrollEdge = 0.08 -- opt [0.0-0.5] 0.5 for always(default) scroll, 0.0 for minimum scroll
 
 
--- note that search (shorter or not) is different in that it process FULL name, where possible, not only the part after last "/"
-    --TODO XLat support
     --TODO predict-skipping
     --TODO Alternative dialog skins
     --TODO  + "overlay mask" mode for minimalistic skin
@@ -246,25 +236,41 @@ params: inprec - current key event
 ]]
 local function un_alt (inprec)
 -- work around to drop alt ( I failed to make mapping vk -> char work, so this is what is left)
-    local vAlt = 0
-    local sAlt = 0
-    local ext = 0
-	if (bit64.band(ffi.C.GetKeyState(0xA4), 0x80) > 0) then
-		vAlt = 0xA4
-		sAlt = ffi.C.MapVirtualKeyW(0xA4, 0)
-	end
-	if (bit64.band(ffi.C.GetKeyState(0xA5), 0x80) > 0) then
-		vAlt = 0xA5
-		sAlt = ffi.C.MapVirtualKeyW(0xA5, 0)
-		ext = 1
+
+    local rAlt = false
+    local lAlt = false
+
+    local vkLAlt = 0xA4
+    local vkRAlt = 0xA5
+    local scLAlt = ffi.C.MapVirtualKeyW(0xA4, 0)
+    local scRAlt = ffi.C.MapVirtualKeyW(0xA5, 0)
+
+	-- check  if LAlt is pressed
+	if (bit64.band(ffi.C.GetKeyState(vkLAlt), 0x80) > 0) then
+		lAlt = true
+		ffi.C.keybd_event(vkLAlt, scLAlt, 2, 0) -- lALT  unpress
 	end
 
-	ffi.C.keybd_event(vAlt, sAlt, 2+ext, 0) -- ALT  unpress
+	-- check if RAlt is pressed
+	if (bit64.band(ffi.C.GetKeyState(vkRAlt), 0x80) > 0) then
+		rAlt = true
+		ffi.C.keybd_event(vkRAlt, scRAlt, 3, 0) -- rALT  unpress
+	end
 
 	ffi.C.keybd_event(inprec.VirtualKeyCode, inprec.VirtualScanCode, 0, 0)
 	ffi.C.keybd_event(inprec.VirtualKeyCode, inprec.VirtualScanCode, 2, 0)
 
-	ffi.C.keybd_event(vAlt, sAlt, 0+ext, 0) -- ALT repress
+	if (rAlt) then
+		ffi.C.keybd_event(vkRAlt, scRAlt, 1, 0) -- rALT repress
+	end
+
+	if (lAlt) then
+		ffi.C.keybd_event(vkLAlt, scLAlt, 0, 0) -- lALT repress
+	end
+
+-- my original plan was to convert Alt[Shift]Key -> char in-house with respect to CAPS and
+--   current keyboard locale.
+
 end
 
 
@@ -556,7 +562,7 @@ function ffind.dlg_proc (hDlg, msg, param1, param2)
                 return false
             end
 
-            return ffind.process_input(hDlg, param2) -- proxy results to Far
+            return ffind.process_input(hDlg, param2) -- pass results to Far
         end
     end
 end
@@ -569,7 +575,7 @@ Params: width, height - dialog size
 
 returns: left,top,right,bottom
 ]]
-local function get_dialog_rect(width, height)
+local function get_std_dialog_rect(width, height)
     local pRect = panel.GetPanelInfo(nil,1).PanelRect;
     local farRect = far.AdvControl (_F.ACTL_GETFARRECT, 0, 0)
     local bottom = pRect.bottom + height - 1
@@ -601,7 +607,7 @@ function ffind.create_dialog()
 --[[6]]        ,{_F.DI_TEXT       ,width-5,2,width-5,2,0,0,0,0,""}
 	}
 
-    local left,top,right,bottom = get_dialog_rect(width,3)
+    local left,top,right,bottom = get_std_dialog_rect(width,3)
 	local hDlg = far.DialogInit(ffind.dlgGUID,left,top,right,bottom,nil,dialogItems,
 		_F.FDLG_KEEPCONSOLETITLE + _F.FDLG_SMALLDIALOG + _F.FDLG_NODRAWSHADOW ,
         ffind.dlg_proc)
