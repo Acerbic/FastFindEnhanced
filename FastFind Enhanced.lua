@@ -1,5 +1,5 @@
 ﻿local _F = far.Flags
-local precedingAst = true --opt
+local optPrecedingAsterisk = true --opt
 
 package.loaded.le = nil
 local le = require "le";
@@ -26,7 +26,7 @@ function export.Open( openFrom, Guid, Item)
     far.DialogRun(hDlg); -- run and close. Otherwise calls to "process_input" will lock input field into "unchanged" state
 
 	-- initialize dialog with input string
-    if (precedingAst) then
+    if (optPrecedingAsterisk) then
     	local pattern = "*"
 	    while (pattern:len() >0) do
 	        local inprec = far.NameToInputRecord(pattern:sub(1,1))

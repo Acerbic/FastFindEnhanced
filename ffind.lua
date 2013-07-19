@@ -1,24 +1,24 @@
-﻿package.loaded.le = nil
-local le = require "le";
+﻿local ffind = {}
 
-  	local ffi = require("ffi")
-	ffi.cdef[[
+package.loaded.le = nil
+local le = require "le"; -- for occasional debugging
+
+local ffi = require("ffi")
+ffi.cdef[[
 	void keybd_event(
-	  unsigned char bVk,
-	  unsigned char bScan,
-	  unsigned long dwFlags,
-	  unsigned long dwExtraInfo
+		unsigned char bVk,
+		unsigned char bScan,
+		unsigned long dwFlags,
+		unsigned long dwExtraInfo
 	);
 
 	unsigned int GetKeyState(unsigned int nVirtKey);
 
 	unsigned int MapVirtualKeyW(
-  		unsigned int uCode,
-  		unsigned int uMapType
+		unsigned int uCode,
+		unsigned int uMapType
 	);
-	]]
-
-local ffind = {}
+]]
 
 ffind.dlgGUID="{ACE12B1C-5FC7-E11F-1337-FA575EA12C14}"       -- fuck teh police
 
@@ -27,20 +27,25 @@ local width = 36; --dialog width
 
 -- note that search (shorter or not) is different in that it process FULL name, where possible,
 --  not only the part after last "/"
-local shorterSearch = true --opt
-local defaultScrolling = false --opt
-local sideStickPosition = true --opt
-local precedingAst = true; -- opt
-local forceScrollEdge = 0.08 -- opt [0.0-0.5] 0.5 for always(default) scroll, 0.0 for minimum scroll
+
+-- most options from future configuration menu
+local optShorterSearch = true
+local optPanelSidePosition = true
+local optPrecedingAsterisk = true
+local optDefaultScrolling = false
+local optForceScrollEdge = 0.08 -- [0.0-0.5] 0.5 for always(default) scroll, 0.0 for minimum scroll
+local optUseXlat = false   -- not operational atm
 
 
-    --TODO predict-skipping
+    --TODO predict-skipping: if all items found for current pattern share the same next chars, they might be skipped
+    --TODO auto bilingual guess (xlat pattern if no matches for current pattern)
+    --TODO prev/next items lists hovering
+
     --TODO Alternative dialog skins
-    --TODO  + "overlay mask" mode for minimalistic skin
+    --TODO (prob never) "overlay mask" mode for minimalistic skin
 
-    -- TODO KEY_OP_XLAT KEY_OP_PLAINTEXT??
-    -- TODO F1
-    -- TODO?? make dialog re-positioning (and pattern matching?) when it is shown, not closed?
+    --TODO KEY_OP_XLAT KEY_OP_PLAINTEXT??
+    --TODO (minor) make dialog re-positioning (and pattern matching?) when it is shown, not closed?
 
 --[[
 Set value for a dialog item (field [10] of FarDialogItem)
@@ -233,49 +238,62 @@ end
 Simulates a new key pressed combo based on current key pressed, only without Alt being pressed.
 
 params: inprec - current key event
+returns: char that un-alted key would produce or "Ignore"
 ]]
 local function un_alt (inprec)
--- work around to drop alt ( I failed to make mapping vk -> char work, so this is what is left)
 
-    local rAlt = false
-    local lAlt = false
+	if (optUseXlat) then
+-- TODO: read kblayout and if its not Eng, then XLAT
+	else
+	-- work around to drop alt ( I failed to make mapping vk -> char work, so this is what is left)
 
-    local vkLAlt = 0xA4
-    local vkRAlt = 0xA5
-    local scLAlt = ffi.C.MapVirtualKeyW(0xA4, 0)
-    local scRAlt = ffi.C.MapVirtualKeyW(0xA5, 0)
+	    local rAlt = false
+	    local lAlt = false
 
-	-- check  if LAlt is pressed
-	if (bit64.band(ffi.C.GetKeyState(vkLAlt), 0x80) > 0) then
-		lAlt = true
-		ffi.C.keybd_event(vkLAlt, scLAlt, 2, 0) -- lALT  unpress
+	    local vkLAlt = 0xA4
+	    local vkRAlt = 0xA5
+	    local scLAlt = ffi.C.MapVirtualKeyW(0xA4, 0)
+	    local scRAlt = ffi.C.MapVirtualKeyW(0xA5, 0)
+
+		-- check  if LAlt is pressed
+		if (bit64.band(ffi.C.GetKeyState(vkLAlt), 0x80) > 0) then
+			lAlt = true
+			ffi.C.keybd_event(vkLAlt, scLAlt, 2, 0) -- lALT  unpress
+		end
+
+		-- check if RAlt is pressed
+		if (bit64.band(ffi.C.GetKeyState(vkRAlt), 0x80) > 0) then
+			rAlt = true
+			ffi.C.keybd_event(vkRAlt, scRAlt, 3, 0) -- rALT  unpress
+		end
+
+		-- I don't have a slightiest of clue how this will interact with fancy input locales, like hierogliphics
+		ffi.C.keybd_event(inprec.VirtualKeyCode, inprec.VirtualScanCode, 0, 0)
+		ffi.C.keybd_event(inprec.VirtualKeyCode, inprec.VirtualScanCode, 2, 0)
+
+		if (rAlt) then
+			ffi.C.keybd_event(vkRAlt, scRAlt, 1, 0) -- rALT repress
+		end
+
+		if (lAlt) then
+			ffi.C.keybd_event(vkLAlt, scLAlt, 0, 0) -- lALT repress
+		end
+
+		return "Ignore"
 	end
+-- My original plan was to convert Alt[Shift]Key -> char in-house with respect to CAPS and
+--   current keyboard locale and without build-in XLAT from Far (I don't trust it, tbh).
+-- BUT I faced a number of issues:
 
-	-- check if RAlt is pressed
-	if (bit64.band(ffi.C.GetKeyState(vkRAlt), 0x80) > 0) then
-		rAlt = true
-		ffi.C.keybd_event(vkRAlt, scRAlt, 3, 0) -- rALT  unpress
-	end
+-- GetKeyboardLayout() doesn't read a correct layout from "current" thread. Instead, you must
+--   locate a hosting 'conhost.exe' thread (there is code for that on the net, but its not trivial
+--   and possibly needs UAC approval)
+-- Alternatively, I was thinking about using 'lua-macro-code-eval' call to get Far.KbdLayout()
+--   of MacroAPI kit from macro context of Far execution
 
-	ffi.C.keybd_event(inprec.VirtualKeyCode, inprec.VirtualScanCode, 0, 0)
-	ffi.C.keybd_event(inprec.VirtualKeyCode, inprec.VirtualScanCode, 2, 0)
-
-	if (rAlt) then
-		ffi.C.keybd_event(vkRAlt, scRAlt, 1, 0) -- rALT repress
-	end
-
-	if (lAlt) then
-		ffi.C.keybd_event(vkLAlt, scLAlt, 0, 0) -- lALT repress
-	end
-
--- my original plan was to convert Alt[Shift]Key -> char in-house with respect to CAPS and
---   current keyboard locale. BUT I faced a number of issues:
-
---	 GetKeyboardLayout() doesn't read a correct layout from "current" thread. Instead, you must  locate a hosting 'conhost.exe' thread (there is code for that on the net, but its not trivial and possibly need UAC appoval)
---   (alternatively) I was thinking about using 'lua-macro-code-eval' call to get Far.KbdLayout() of MacroAPI kit from macro context of Far execution
-
---   MapVirtualKeyEx() does not work, seemingly
---   ToUnicodeEx() translates a key just fine but creates some kind of a leak in LuaMacro, causing Far to crash later
+-- MapVirtualKeyEx() does not work, seemingly
+-- ToUnicodeEx() translates a key just fine but creates some kind of a leak in LuaMacro,
+--   causing Far to crash later (or you can see an error message in console after Far terminates)
 end
 
 
@@ -328,8 +346,7 @@ local function get_dry_key (inprec)
     if (not alt) then return key end -- return Key if ShiftKey or Key
 
     -- below this we have only Alt(Shift)?Key combinations
-     un_alt (inprec)
-     return "Ignore"
+     return un_alt (inprec)
 end
 
 --[[
@@ -409,7 +426,7 @@ local function calc_new_panel_top_item(newPos)
     if (newPos ~= panel.GetPanelInfo(nil,1).CurrentItem) then
         local pRect = panel.GetPanelInfo(nil,1).PanelRect;
         local totalItemLines = get_lines_per_column(pRect)
-        if (defaultScrolling) then
+        if (optDefaultScrolling) then
             -- center current element in the 1st column if scrolling is possible (FAR standard behavior)
             newTopItem = newPos-totalItemLines/2
         else
@@ -433,7 +450,7 @@ local function calc_new_panel_top_item(newPos)
             -- >0.5 if off screen
             local relOffset = (newTopItem + totalItemLines/2 - newPos)/totalItemLines
 
-            local edgePercent = forceScrollEdge / numNameColumns --scale edge according to number of columns
+            local edgePercent = optForceScrollEdge / numNameColumns --scale edge according to number of columns
             if (math.abs(relOffset)+edgePercent>0.5) then -- need to scroll
                 if (math.abs(relOffset)>0.5) then
                     -- big scroll and center
@@ -467,6 +484,17 @@ function ffind.process_input(hDlg, inputRec)
 
     local searchDirection = "current_or_next" -- default search mode
 
+    if (dryKey == "CtrlV") then -- special occasion covering all insertion keys
+        local paste = far.PasteFromClipboard ()
+        _G[ffind.dlgGUID].dontBlinkPlease = true
+        for i = 1, paste:len()-1 do --all but the final one
+            ffind.process_input (hDlg, far.NameToInputRecord(paste:sub(i,i)))
+        end
+        _G[ffind.dlgGUID].dontBlinkPlease = nil
+
+        dryKey = paste:sub(-1,-1) -- process the final char as usuall input
+	end
+
     -- omfg. LUA HAS NO SWITCH STATEMENT... Shit got serious...
     if (dryKey == "Default") then
         return false
@@ -487,19 +515,12 @@ function ffind.process_input(hDlg, inputRec)
     elseif (dryKey == "BS") then
         newPattern = pattern:sub(1, -2)
         searchDirection = "current"
-    elseif (dryKey == "CtrlV") then -- special occasion covering all insertion keys
-        local paste = far.PasteFromClipboard ()
-        _G[ffind.dlgGUID].dontBlinkPlease = true
-        for i = 1, paste:len()-1 do --all but the final one
-            ffind.process_input (hDlg, far.NameToInputRecord(paste:sub(i,i)))
-        end
-        _G[ffind.dlgGUID].dontBlinkPlease = nil
-        newPattern = get_dialog_item_data(hDlg, 2) .. paste:sub(-1,-1) -- process the final char as usuall input
 
     elseif (dryKey == "Esc") then
         _G[ffind.dlgGUID].dieSemaphor = true;
         return false -- close naturally by Esc
 
+    -- dryKey is a simple character.
     elseif (type(dryKey) == "string" and dryKey:len() == 1) then
         if (pattern:sub(-1,-1) == '*' and ((dryKey=='*') or (dryKey=='?'))) then
             return true -- ignore '**' and '*?'
@@ -519,7 +540,7 @@ function ffind.process_input(hDlg, inputRec)
     -- pattern was modified. now search for newPattern in file list
     local newPos, countBefore, countAfter
 
-    if (shorterSearch) then
+    if (optShorterSearch) then
         newPos, countBefore, countAfter = get_new_cursor_position_shorter_start(newPattern, searchDirection)
     else
         newPos, countBefore, countAfter = get_new_cursor_position(newPattern, searchDirection)
@@ -535,7 +556,7 @@ function ffind.process_input(hDlg, inputRec)
     panel.RedrawPanel(nil, 1, {CurrentItem=newPos, TopPanelItem=newTopItem})
 
     -- must move dialog AFTER panel scrolled to the element
-    if (sideStickPosition) then
+    if (optPanelSidePosition) then
         far.SendDlgMessage(hDlg, _F.DM_MOVEDIALOG, 1, calc_new_side_dialog_coords(hDlg))
     end
 
@@ -545,32 +566,6 @@ function ffind.process_input(hDlg, inputRec)
     return true
 end
 
-
---[[
-Event handler for Fast Find dialog.
-Standard dlgProc function interface
-]]
-function ffind.dlg_proc (hDlg, msg, param1, param2)
-    if (_G[ffind.dlgGUID].firstRun) then
-        _G[ffind.dlgGUID].firstRun = nil
-        far.SendDlgMessage(hDlg, _F.DM_EDITUNCHANGEDFLAG, 2, 0) -- drop "unchanged"
-        far.SendDlgMessage (hDlg, _F.DM_CLOSE, -1, 0) -- blink the dialog to update panel views
-        return
-    end
-
-    if (msg == _F.DN_CTLCOLORDLGITEM) then
-        if (param1==3) then param2[1].ForegroundColor = 10; return param2; end
-        if (param1==4) then param2[1].ForegroundColor = 12; return param2; end
-    elseif (msg == _F.DN_CONTROLINPUT) then
-        if (param1 == 2) then
-            if ((param2.EventType ~= _F.KEY_EVENT) and (param2.EventType ~= _F.FARMACRO_KEY_EVENT)) then
-                return false
-            end
-
-            return ffind.process_input(hDlg, param2) -- pass results to Far
-        end
-    end
-end
 
 --[[
 Dialog is placed in the bottom-center of an active panel. If it does not fit then it is
@@ -600,6 +595,32 @@ local function get_std_dialog_rect(width, height)
     -- I ignore a case when farRectWidth < width
 
     return left,top,right,bottom
+end
+
+--[[
+Event handler for Fast Find dialog.
+Standard dlgProc function interface
+]]
+function ffind.dlg_proc (hDlg, msg, param1, param2)
+    if (_G[ffind.dlgGUID].firstRun) then
+        _G[ffind.dlgGUID].firstRun = nil
+        far.SendDlgMessage(hDlg, _F.DM_EDITUNCHANGEDFLAG, 2, 0) -- drop "unchanged"
+        far.SendDlgMessage (hDlg, _F.DM_CLOSE, -1, 0) -- blink the dialog to update panel views
+        return
+    end
+
+    if (msg == _F.DN_CTLCOLORDLGITEM) then
+        if (param1==3) then param2[1].ForegroundColor = 10; return param2; end
+        if (param1==4) then param2[1].ForegroundColor = 12; return param2; end
+    elseif (msg == _F.DN_CONTROLINPUT) then
+        if (param1 == 2) then
+            if ((param2.EventType ~= _F.KEY_EVENT) and (param2.EventType ~= _F.FARMACRO_KEY_EVENT)) then
+                return false
+            end
+
+            return ffind.process_input(hDlg, param2) -- pass results to Far
+        end
+    end
 end
 
 function ffind.create_dialog()
@@ -632,10 +653,6 @@ end
     012345678901234567890123456789012345
 
 ]]
-
-
-
-
 
 
 return ffind
