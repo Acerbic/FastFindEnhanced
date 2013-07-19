@@ -21,7 +21,7 @@ function export.Open( openFrom, Guid, Item)
     _G[ffind.dlgGUID] = _G[ffind.dlgGUID] or {}
     local hDlg = ffind.create_dialog()
 
-    -- !! workaround some wild bug
+    -- !! work around some wild bug
     _G[ffind.dlgGUID].firstRun = true
     far.DialogRun(hDlg); -- run and close. Otherwise calls to "process_input" will lock input field into "unchanged" state
 

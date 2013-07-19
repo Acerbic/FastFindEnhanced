@@ -34,7 +34,7 @@ local optPanelSidePosition = true
 local optPrecedingAsterisk = true
 local optDefaultScrolling = false
 local optForceScrollEdge = 0.08 -- [0.0-0.5] 0.5 for always(default) scroll, 0.0 for minimum scroll
-local optUseXlat = false   -- not operational atm
+local optUseXlat = true   -- not operational atm
 
 
     --TODO predict-skipping: if all items found for current pattern share the same next chars, they might be skipped
@@ -243,10 +243,51 @@ returns: char that un-alted key would produce or "Ignore"
 local function un_alt (inprec)
 
 	if (optUseXlat) then
--- TODO: read kblayout and if its not Eng, then XLAT
+		local shiftTable = {     -- this is for english keyboard, i'm making an assumption here.
+		["`"]  =  "~",
+		["1"]  =  "!",
+		["2"]  =  "@",
+		["3"]  =  "#",
+		["4"]  =  "$",
+		["5"]  =  "%",
+		["6"]  =  "^",
+		["7"]  =  "&",
+		["8"]  =  "*",
+		["9"]  =  "(",
+		["0"]  =  ")",
+		["-"]  =  "_",
+		["="]  =  "+",
+		["["]  =  "{",
+		["]"]  =  "}",
+		[";"]  =  ":",
+		["'"]  =  "\"",
+		[","]  =  "<",
+		["."]  =  ">",
+		["/"]  =  "?",
+		["\\"] =  "|"
+		}
+
+		local _, _, shift, key = far.InputRecordToName(inprec, true)
+		if (key:len() > 1) then
+			return key -- do not touch special non-character keys like "F3" or "BS"
+		end
+
+		local macroResults = far.MacroExecute("return Far.KbdLayout()",0) -- fml
+		if (macroResults.n <1) then
+			return "Ignore" -- failed to acquire kbdlayout
+		end
+		local kbdL = bit64.band(macroResults[1], 0xFFFF) -- lower word for base language of the keyboard layout
+
+		local resultChar = shift and shiftTable[key] or key
+		if (kbdL == 0x0409) then --U.S. English
+			resultChar =  resultChar -- no more actions required
+		else
+			resultChar = far.XLat( resultChar )
+		end
+
+		return far.LLowerBuf(resultChar) -- lower case it (native FastSearch behavior)
 	else
 	-- work around to drop alt ( I failed to make mapping vk -> char work, so this is what is left)
-
 	    local rAlt = false
 	    local lAlt = false
 
