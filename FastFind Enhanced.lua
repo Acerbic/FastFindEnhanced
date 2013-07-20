@@ -1,7 +1,6 @@
 ﻿local _F = far.Flags
 local optPrecedingAsterisk = true --opt
 
-package.loaded.le = nil
 local le = require "le";
 
 function export.GetPluginInfo ()
@@ -10,11 +9,14 @@ function export.GetPluginInfo ()
       Flags = _F.PF_NONE,
 
       PluginMenuStrings = {"FastFind Enhanced"},
-      PluginMenuGuids = "8195eb6d-9651-4d60-9a16-ed0d90e20be7"
+      PluginMenuGuids = win.Uuid("8195eb6d-9651-4d60-9a16-ed0d90e20be7"),
+
+      PluginConfigStrings = {"FastFind Enhanced"},
+      PluginConfigGuids = win.Uuid("22595d6e-fc1e-4317-9935-5e9d3a39bea7")
 	}
 end
 
-function export.Open( openFrom, Guid, Item)
+function export.Open(openFrom, guid, item)
     package.loaded.ffind = nil
     local ffind = require "ffind"
 
@@ -49,4 +51,11 @@ function export.Open( openFrom, Guid, Item)
     end
 
     _G[ffind.dlgGUID] = nil;
+end
+
+function export.Configure(guid)
+	package.loaded.ffind_cfg = nil
+	local ffind_cfg = require "ffind_cfg"
+
+	return 1 -- success
 end

@@ -1,6 +1,5 @@
 ﻿local ffind = {}
 
-package.loaded.le = nil
 local le = require "le"; -- for occasional debugging
 
 local ffi = require("ffi")
@@ -34,7 +33,7 @@ local optPanelSidePosition = true
 local optPrecedingAsterisk = true
 local optDefaultScrolling = false
 local optForceScrollEdge = 0.08 -- [0.0-0.5] 0.5 for always(default) scroll, 0.0 for minimum scroll
-local optUseXlat = true   -- not operational atm
+local optUseXlat = true
 
 
     --TODO predict-skipping: if all items found for current pattern share the same next chars, they might be skipped
@@ -274,7 +273,7 @@ local function un_alt (inprec)
 
 		local macroResults = far.MacroExecute("return Far.KbdLayout()",0) -- fml
 		if (macroResults.n <1) then
-			return "Ignore" -- failed to acquire kbdlayout
+			return "Ignore" -- failed to acquire kbdlayout, just sweep this key under the rug
 		end
 		local kbdL = bit64.band(macroResults[1], 0xFFFF) -- lower word for base language of the keyboard layout
 
