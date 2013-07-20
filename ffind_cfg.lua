@@ -7,7 +7,7 @@ ffind_cfg.dlgGUID = "{30ed409d-b5e6-4ed0-a3ef-d1757a36b6f5}"
  local optPrecedingAsterisk = true
  local optDefaultScrolling = false
  local optForceScrollEdge = 0.08 -- [0.0-0.5] 0.5 for always(default) scroll, 0.0 for minimum scroll
- local optUseXlat = true
+ local optUseXlat = false
 
  local chkPrecedingAsterisk = optPrecedingAsterisk and 1 or 0
  local chkShorterSearch = optShorterSearch and 1 or 0
