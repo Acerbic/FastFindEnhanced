@@ -2,8 +2,8 @@
 local optPrecedingAsterisk = true --opt
 
 local le = require "le";
+
 function export.Configure(guid)
-	msgbox("Configure started","")
 	package.loaded.ffind_cfg = nil
 	local ffind_cfg = require "ffind_cfg"
 
@@ -13,6 +13,7 @@ function export.Configure(guid)
 
 	return true -- success
 end
+
 function export.GetPluginInfo ()
 
   	return {
@@ -61,12 +62,4 @@ function export.Open(openFrom, guid, item)
     end
 
     _G[ffind.dlgGUID] = nil;
-end
-
-function export.configure(guid)
-	return export.Configure(guid)
-end
-
-function export.Config(guid)
-	return export.Configure(guid)
 end

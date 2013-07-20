@@ -39,13 +39,13 @@ function ffind_cfg.create_dialog()
 --[[5]]        ,{_F.DI_CHECKBOX   ,2,6,0,6,         chkBetterScrolling,0,0,0,"Better scrolling algorithm"}
 
 --[[6]]        ,{_F.DI_TEXT       ,5,7,0,7,         0,0,0,0,"Scroll margin:"}
---[[7]]        ,{_F.DI_FIXEDIT    ,20,7,23,7,       0,0,"999",_F.DIF_MASKEDIT,inpScrollMargin}
+--[[7]]        ,{_F.DI_EDIT       ,20,7,23,7,       0,0,"999",_F.DIF_MASKEDIT,inpScrollMargin,3}
 --[[8]]        ,{_F.DI_TEXT       ,24,7,1,7,        0,0,0,0,"%"}
 
 --[[9]]        ,{_F.DI_CHECKBOX   ,2,9,0,9,         chkUseXlat,0,0,0,"Use XLat for non-English keyboards"}
 
---[[8]]        ,{_F.DI_BUTTON     ,9,11,0,11,       0,0,0,_F.DIF_DEFAULTBUTTON,"OK"}
---[[8]]        ,{_F.DI_BUTTON     ,23,11,0,11,      0,0,0,0,"Cancel"}
+--[[10]]       ,{_F.DI_BUTTON     ,9,11,0,11,       0,0,0,_F.DIF_DEFAULTBUTTON,"OK"}
+--[[11]]       ,{_F.DI_BUTTON     ,23,11,0,11,      0,0,0,0,"Cancel"}
 
 	}
 
