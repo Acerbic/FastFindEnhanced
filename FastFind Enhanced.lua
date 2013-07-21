@@ -6,8 +6,10 @@ function export.Configure(guid)
 
 	local hDlg = ffind_cfg.create_dialog()
     
-    far.DialogRun(hDlg);
-    ffind_cfg.save_settings(hDlg)
+    local dlgReturnedValue = far.DialogRun(hDlg)
+    if (dlgReturnedValue == 10) then
+        ffind_cfg.save_settings(hDlg)
+    end
 
     far.DialogFree(hDlg);
 

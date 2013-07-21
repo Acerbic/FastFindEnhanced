@@ -2,7 +2,6 @@
 local ffind_cfg = {}
 ffind_cfg.dlgGUID = "{30ed409d-b5e6-4ed0-a3ef-d1757a36b6f5}"
 
--- TODO catch the diff between "OK" and "Cancel" button events
 -- TODO guard "Scroll margin" input field for 0-100 values only
 
 --[[
