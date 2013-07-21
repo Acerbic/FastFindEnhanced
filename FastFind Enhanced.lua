@@ -1,14 +1,14 @@
 ﻿local _F = far.Flags
-local optPrecedingAsterisk = true --opt
-
-local le = require "le";
 
 function export.Configure(guid)
 	package.loaded.ffind_cfg = nil
 	local ffind_cfg = require "ffind_cfg"
 
 	local hDlg = ffind_cfg.create_dialog()
+    
     far.DialogRun(hDlg);
+    ffind_cfg.save_settings(hDlg)
+
     far.DialogFree(hDlg);
 
 	return true -- success
@@ -31,35 +31,36 @@ function export.Open(openFrom, guid, item)
     package.loaded.ffind = nil
     local ffind = require "ffind"
 
-    _G[ffind.dlgGUID] = _G[ffind.dlgGUID] or {}
+    local settingsObj = far.CreateSettings ()
+    local optPrecedingAsterisk = settingsObj:Get(0, "optPrecedingAsterisk", _F.FST_QWORD)>0
+    far.FreeSettings ( settingsObj )
+
     local hDlg = ffind.create_dialog()
 
     -- !! work around some wild bug
-    _G[ffind.dlgGUID].firstRun = true
-    far.DialogRun(hDlg); -- run and close. Otherwise calls to "process_input" will lock input field into "unchanged" state
+    ffind.firstRun = true
+    far.DialogRun(hDlg) -- run and close. Otherwise calls to "process_input" will lock input field into "unchanged" state
+    ffind.firstRun = nil
 
 	-- initialize dialog with input string
     if (optPrecedingAsterisk) then
-    	local pattern = "*"
-	    while (pattern:len() >0) do
-	        local inprec = far.NameToInputRecord(pattern:sub(1,1))
-	        pattern = pattern:sub(2,-1)
-	        ffind.process_input(hDlg, inprec)
-	    end
+        local inprec = far.NameToInputRecord("*")
+        ffind.process_input(hDlg, inprec)
 	end
 
 	--main loop
-    while (not _G[ffind.dlgGUID].dieSemaphor) do
-        far.DialogRun(hDlg);
+    while (not ffind.dieSemaphor) do
+        far.DialogRun(hDlg)
     end
+    ffind.dieSemaphor = nil
 
-    far.DialogFree(hDlg);
+    far.DialogFree(hDlg)
 
-    if (_G[ffind.dlgGUID].resendKey) then
-    	far.MacroPost ('Keys("'.._G[ffind.dlgGUID].resendKey..'")') -- note quotes usage,
+    if (ffind.resendKey) then
+    	far.MacroPost ('Keys("'..ffind.resendKey..'")') -- note quotes usage,
     	--   resendKey may contain <'> but not <"> ( <"> is only generated when Alt and Control
     	--   are not pressed, and is checked against filenames inside the dialog)
+    	ffind.resendKey = nil
     end
 
-    _G[ffind.dlgGUID] = nil;
 end

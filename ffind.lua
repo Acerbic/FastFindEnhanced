@@ -20,6 +20,10 @@ ffi.cdef[[
 ]]
 
 ffind.dlgGUID="{ACE12B1C-5FC7-E11F-1337-FA575EA12C14}"       -- fuck teh police
+ffind.firstRun = false
+ffind.dieSemaphor = false
+ffind.resendKey = nil
+local dontBlinkPlease = false
 
 local _F = far.Flags
 local width = 36; --dialog width
@@ -27,10 +31,8 @@ local width = 36; --dialog width
 -- note that search (shorter or not) is different in that it process FULL name, where possible,
 --  not only the part after last "/"
 
--- most options from future configuration menu
 local optShorterSearch = true
 local optPanelSidePosition = true
-local optPrecedingAsterisk = true
 local optDefaultScrolling = false
 local optForceScrollEdge = 0.08 -- [0.0-0.5] 0.5 for always(default) scroll, 0.0 for minimum scroll
 local optUseXlat = true
@@ -526,11 +528,11 @@ function ffind.process_input(hDlg, inputRec)
 
     if (dryKey == "CtrlV") then -- special occasion covering all insertion keys
         local paste = far.PasteFromClipboard ()
-        _G[ffind.dlgGUID].dontBlinkPlease = true
+        dontBlinkPlease = true
         for i = 1, paste:len()-1 do --all but the final one
             ffind.process_input (hDlg, far.NameToInputRecord(paste:sub(i,i)))
         end
-        _G[ffind.dlgGUID].dontBlinkPlease = nil
+        dontBlinkPlease = nil
 
         dryKey = paste:sub(-1,-1) -- process the final char as usuall input
 	end
@@ -557,7 +559,7 @@ function ffind.process_input(hDlg, inputRec)
         searchDirection = "current"
 
     elseif (dryKey == "Esc") then
-        _G[ffind.dlgGUID].dieSemaphor = true;
+        ffind.dieSemaphor = true;
         return false -- close naturally by Esc
 
     -- dryKey is a simple character.
@@ -570,8 +572,8 @@ function ffind.process_input(hDlg, inputRec)
     else
         -- close dialog on every other key  or dryKey == nil
         -- and pass the key over to the panel
-        _G[ffind.dlgGUID].dieSemaphor = true;
-        _G[ffind.dlgGUID].resendKey = far.InputRecordToName(inputRec)
+        ffind.dieSemaphor = true;
+        ffind.resendKey = far.InputRecordToName(inputRec)
 
         far.SendDlgMessage(hDlg, _F.DM_CLOSE, -1, 0) -- force close
         return true
@@ -600,7 +602,7 @@ function ffind.process_input(hDlg, inputRec)
         far.SendDlgMessage(hDlg, _F.DM_MOVEDIALOG, 1, calc_new_side_dialog_coords(hDlg))
     end
 
-    if (not _G[ffind.dlgGUID].dontBlinkPlease) then
+    if (not dontBlinkPlease) then
         far.SendDlgMessage (hDlg, _F.DM_CLOSE, -1, 0) -- blink the dialog to update panel views
     end
     return true
@@ -642,8 +644,8 @@ Event handler for Fast Find dialog.
 Standard dlgProc function interface
 ]]
 function ffind.dlg_proc (hDlg, msg, param1, param2)
-    if (_G[ffind.dlgGUID].firstRun) then
-        _G[ffind.dlgGUID].firstRun = nil
+    if (ffind.firstRun) then
+        ffind.firstRun = nil
         far.SendDlgMessage(hDlg, _F.DM_EDITUNCHANGEDFLAG, 2, 0) -- drop "unchanged"
         far.SendDlgMessage (hDlg, _F.DM_CLOSE, -1, 0) -- blink the dialog to update panel views
         return
@@ -678,6 +680,27 @@ function ffind.create_dialog()
 		_F.FDLG_KEEPCONSOLETITLE + _F.FDLG_SMALLDIALOG + _F.FDLG_NODRAWSHADOW ,
         ffind.dlg_proc)
 
+    -- also loading options from settings here
+    local settingsObj = far.CreateSettings ()
+
+    -- load settings and assign defaults
+    optPrecedingAsterisk = settingsObj:Get(0, "optPrecedingAsterisk", _F.FST_QWORD) or 1
+    optShorterSearch     = settingsObj:Get(0, "optShorterSearch", _F.FST_QWORD)     or 1
+    optPanelSidePosition = settingsObj:Get(0, "optPanelSidePosition", _F.FST_QWORD) or 1
+    optDefaultScrolling  = settingsObj:Get(0, "optDefaultScrolling", _F.FST_QWORD)  or 0
+    optForceScrollEdge   = settingsObj:Get(0, "optForceScrollEdge", _F.FST_QWORD)   or 16
+    optUseXlat           = settingsObj:Get(0, "optUseXlat", _F.FST_QWORD)           or 0
+
+    far.FreeSettings ( settingsObj )
+
+    -- I will go with blind trust and chose to believe that database is filled with correct values
+    -- convert settings to local options
+	optShorterSearch     = optShorterSearch>0     
+	optPanelSidePosition = optPanelSidePosition>0 
+	optDefaultScrolling  = optDefaultScrolling>0  
+	optForceScrollEdge   = optForceScrollEdge/200 
+	optUseXlat           = optUseXlat>0
+    
     return hDlg
 end
 
