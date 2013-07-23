@@ -1,6 +1,6 @@
 ﻿local ffind = {}
 
-local le = require "le"; -- for occasional debugging
+local le = require ("le"); -- for occasional debugging
 
 local ffi = require("ffi")
 ffi.cdef[[
@@ -19,12 +19,16 @@ ffi.cdef[[
 	);
 ]]
 
+local common = require ("common_functions")
+
 ffind.dlgGUID="{ACE12B1C-5FC7-E11F-1337-FA575EA12C14}"       -- fuck teh police
+
+-- these variables are to communicate with the user of the "ffind" module.
 ffind.firstRun = false
 ffind.dieSemaphor = false
 ffind.resendKey = nil
-local dontBlinkPlease = false
 
+local dontBlinkPlease = false
 local _F = far.Flags
 local width = 36; --dialog width
 
@@ -47,36 +51,6 @@ local optUseXlat = true
 
     --TODO KEY_OP_XLAT KEY_OP_PLAINTEXT??
     --TODO (minor) make dialog re-positioning (and pattern matching?) when it is shown, not closed?
-
---[[
-Set value for a dialog item (field [10] of FarDialogItem)
-
-Params: hDlg,
-		itemIndex,
-		newValue
-
-returns: true on success
-         false on failure
-]]
-local function set_dialog_item_data(hDlg, itemNum, data)
-    local inputField = far.GetDlgItem(hDlg, itemNum);
-    if (not inputField) then return false end
-    inputField[10] = data;
-    return far.SetDlgItem(hDlg,itemNum,inputField);
-end
-
---[[
-Get value of a dialog item
-params: hDlg,
-		itemIndex
-
-returns: value
-         nil on falure
-]]
-local function get_dialog_item_data(hDlg, itemNum)
-    local inputField = far.GetDlgItem(hDlg, itemNum);
-    return inputField and inputField[10];
-end
 
 --[[
 Get a list of items visible on active panel
@@ -398,9 +372,9 @@ params: hDlg, pattern, countBefore, countAfter
 local function update_dialog_data (hDlg, pattern, countBefore, countAfter)
     if ( countAfter > 999 ) then countAfter = 999 end
     if ( countBefore > 999 ) then countBefore = 999 end
-    set_dialog_item_data(hDlg, 2, pattern);
-    set_dialog_item_data(hDlg, 3, string.format("%03d",countBefore))
-    set_dialog_item_data(hDlg, 4, string.format("%03d",countAfter))
+    common.set_dialog_item_data(hDlg, 2, pattern);
+    common.set_dialog_item_data(hDlg, 3, string.format("%03d",countBefore))
+    common.set_dialog_item_data(hDlg, 4, string.format("%03d",countAfter))
 end
 
 --[[
@@ -521,7 +495,7 @@ returns: true or false to be returned to Far from dlgProc
 ]]
 function ffind.process_input(hDlg, inputRec)
     local dryKey = get_dry_key(inputRec)
-    local pattern = get_dialog_item_data(hDlg, 2)
+    local pattern = common.get_dialog_item_data(hDlg, 2)
     local newPattern = pattern
 
     local searchDirection = "current_or_next" -- default search mode
@@ -665,25 +639,6 @@ function ffind.dlg_proc (hDlg, msg, param1, param2)
     end
 end
 
---[[ load a named setting from Far's database, check agains a constraint (1 .. )
-and assing default_value if something is wrong
-
-params: name - name of the setting to load
-        defaultValue - if setting is out of range or not defined, this is returned
-        constraint - a maximum value for the setting (a number)
-
-returns: the value of loaded setting
-]]
-local function load_setting(name, defaultValue, constraint)
-    local settingsObj = far.CreateSettings ()
-    local setting = settingsObj:Get(0, name, _F.FST_QWORD)
-
-    setting = setting and setting <= constraint or defaultValue
-
-    far.FreeSettings ( settingsObj )
-    return setting
-end
-
 function ffind.create_dialog()
 	local dialogItems = {
 --[[1]]         {_F.DI_DOUBLEBOX  ,0,0,width-1,2,0,0,0,_F.DIF_LEFTTEXT,"Fast Find"}
@@ -700,11 +655,11 @@ function ffind.create_dialog()
         ffind.dlg_proc)
 
     -- load settings 
-    optShorterSearch     = load_setting("optShorterSearch", 1, 1)
-    optPanelSidePosition = load_setting("optPanelSidePosition", 1, 1)
-    optDefaultScrolling  = load_setting("optDefaultScrolling", 0, 1)
-    optForceScrollEdge   = load_setting("optForceScrollEdge", 16, 100)
-    optUseXlat           = load_setting("optUseXlat", 0, 1)
+    optShorterSearch     = common.load_setting("optShorterSearch", 1, 1)
+    optPanelSidePosition = common.load_setting("optPanelSidePosition", 1, 1)
+    optDefaultScrolling  = common.load_setting("optDefaultScrolling", 0, 1)
+    optForceScrollEdge   = common.load_setting("optForceScrollEdge", 16, 100)
+    optUseXlat           = common.load_setting("optUseXlat", 0, 1)
 
     -- convert settings to local options
 	optShorterSearch     = optShorterSearch>0
