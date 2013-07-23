@@ -665,6 +665,25 @@ function ffind.dlg_proc (hDlg, msg, param1, param2)
     end
 end
 
+--[[ load a named setting from Far's database, check agains a constraint (1 .. )
+and assing default_value if something is wrong
+
+params: name - name of the setting to load
+        defaultValue - if setting is out of range or not defined, this is returned
+        constraint - a maximum value for the setting (a number)
+
+returns: the value of loaded setting
+]]
+local function load_setting(name, defaultValue, constraint)
+    local settingsObj = far.CreateSettings ()
+    local setting = settingsObj:Get(0, name, _F.FST_QWORD)
+
+    setting = setting and setting <= constraint or defaultValue
+
+    far.FreeSettings ( settingsObj )
+    return setting
+end
+
 function ffind.create_dialog()
 	local dialogItems = {
 --[[1]]         {_F.DI_DOUBLEBOX  ,0,0,width-1,2,0,0,0,_F.DIF_LEFTTEXT,"Fast Find"}
@@ -680,25 +699,18 @@ function ffind.create_dialog()
 		_F.FDLG_KEEPCONSOLETITLE + _F.FDLG_SMALLDIALOG + _F.FDLG_NODRAWSHADOW ,
         ffind.dlg_proc)
 
-    -- also loading options from settings here
-    local settingsObj = far.CreateSettings ()
+    -- load settings 
+    optShorterSearch     = load_setting("optShorterSearch", 1, 1)
+    optPanelSidePosition = load_setting("optPanelSidePosition", 1, 1)
+    optDefaultScrolling  = load_setting("optDefaultScrolling", 0, 1)
+    optForceScrollEdge   = load_setting("optForceScrollEdge", 16, 100)
+    optUseXlat           = load_setting("optUseXlat", 0, 1)
 
-    -- load settings and assign defaults
-    optPrecedingAsterisk = settingsObj:Get(0, "optPrecedingAsterisk", _F.FST_QWORD) or 1
-    optShorterSearch     = settingsObj:Get(0, "optShorterSearch", _F.FST_QWORD)     or 1
-    optPanelSidePosition = settingsObj:Get(0, "optPanelSidePosition", _F.FST_QWORD) or 1
-    optDefaultScrolling  = settingsObj:Get(0, "optDefaultScrolling", _F.FST_QWORD)  or 0
-    optForceScrollEdge   = settingsObj:Get(0, "optForceScrollEdge", _F.FST_QWORD)   or 16
-    optUseXlat           = settingsObj:Get(0, "optUseXlat", _F.FST_QWORD)           or 0
-
-    far.FreeSettings ( settingsObj )
-
-    -- I will go with blind trust and chose to believe that database is filled with correct values
     -- convert settings to local options
-	optShorterSearch     = optShorterSearch>0     
-	optPanelSidePosition = optPanelSidePosition>0 
-	optDefaultScrolling  = optDefaultScrolling>0  
-	optForceScrollEdge   = optForceScrollEdge/200 
+	optShorterSearch     = optShorterSearch>0
+	optPanelSidePosition = optPanelSidePosition>0
+	optDefaultScrolling  = optDefaultScrolling>0
+	optForceScrollEdge   = optForceScrollEdge/200
 	optUseXlat           = optUseXlat>0
     
     return hDlg

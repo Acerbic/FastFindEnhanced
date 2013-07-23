@@ -30,11 +30,17 @@ function export.GetPluginInfo ()
 end
 
 function export.Open(openFrom, guid, item)
+    -- since we use a generic dll as a proxy Far thinks we export every function possible.
+    if (openFrom == _F.OPEN_FINDLIST ) then
+        return nil
+    end
+
     package.loaded.ffind = nil
     local ffind = require "ffind"
 
     local settingsObj = far.CreateSettings ()
-    local optPrecedingAsterisk = settingsObj:Get(0, "optPrecedingAsterisk", _F.FST_QWORD)>0
+    local optPrecedingAsterisk = settingsObj:Get(0, "optPrecedingAsterisk", _F.FST_QWORD) or 1
+    optPrecedingAsterisk = optPrecedingAsterisk>0
     far.FreeSettings ( settingsObj )
 
     local hDlg = ffind.create_dialog()

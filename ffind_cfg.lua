@@ -3,6 +3,7 @@ local ffind_cfg = {}
 ffind_cfg.dlgGUID = "{30ed409d-b5e6-4ed0-a3ef-d1757a36b6f5}"
 
 -- TODO guard "Scroll margin" input field for 0-100 values only
+-- TODO disable "Scroll margin" field if "Better scrolling" is not set
 
 --[[
 Event handler for Fast Find configuration dialog.
@@ -46,6 +47,26 @@ local function set_dialog_item_selected(hDlg, itemNum, selectedState)
     return far.SetDlgItem(hDlg,itemNum,inputField);
 end
 
+
+--[[ load a named setting from Far's database, check agains a constraint (1 .. )
+and assing default_value if something is wrong
+
+params: name - name of the setting to load
+        defaultValue - if setting is out of range or not defined, this is returned
+        constraint - a maximum value for the setting (a number)
+
+returns: the value of loaded setting
+]]
+local function load_setting(name, defaultValue, constraint)
+    local settingsObj = far.CreateSettings ()
+    local setting = settingsObj:Get(0, name, _F.FST_QWORD)
+
+    setting = setting and setting <= constraint or defaultValue
+
+    far.FreeSettings ( settingsObj )
+    return setting
+end
+
 --[[
 Creates a Far dialog object for FastFind configuration dialog,
 
@@ -53,25 +74,13 @@ returns: hDlg - handle for this dialog. far.DialogFree() MUST be called sometime
 ]]
 function ffind_cfg.create_dialog()
 
-    local settingsObj = far.CreateSettings ()
-
-    -- load settings and assign defaults
-    local optPrecedingAsterisk = settingsObj:Get(0, "optPrecedingAsterisk", _F.FST_QWORD) or 1
-    local optShorterSearch     = settingsObj:Get(0, "optShorterSearch", _F.FST_QWORD)     or 1
-    local optPanelSidePosition = settingsObj:Get(0, "optPanelSidePosition", _F.FST_QWORD) or 1
-    local optDefaultScrolling  = settingsObj:Get(0, "optDefaultScrolling", _F.FST_QWORD)  or 0
-    local optForceScrollEdge   = settingsObj:Get(0, "optForceScrollEdge", _F.FST_QWORD)   or 16
-    local optUseXlat           = settingsObj:Get(0, "optUseXlat", _F.FST_QWORD)           or 0
-
-    far.FreeSettings ( settingsObj )
-
-    -- check ranges and reset defaults for ones that are off
-    optPrecedingAsterisk = bit64.bor(optPrecedingAsterisk,1)==1 and optPrecedingAsterisk or 1
-	optShorterSearch     = bit64.bor(optShorterSearch,1)==1     and optShorterSearch     or 1
-	optPanelSidePosition = bit64.bor(optPanelSidePosition,1)==1 and optPanelSidePosition or 1 
-	optDefaultScrolling  = bit64.bor(optDefaultScrolling,1)==1  and optDefaultScrolling  or 0
-	optForceScrollEdge   = optForceScrollEdge>=0 and optForceScrollEdge<=100 and optForceScrollEdge or 16
-	optUseXlat           = bit64.bor(optUseXlat,1)==1           and optUseXlat           or 0
+    -- load settings and assign defaults if not set
+    local optPrecedingAsterisk = load_setting("optPrecedingAsterisk", 1, 1)
+    local optShorterSearch     = load_setting("optShorterSearch", 1, 1)
+    local optPanelSidePosition = load_setting("optPanelSidePosition", 1, 1)
+    local optDefaultScrolling  = load_setting("optDefaultScrolling", 0, 1)
+    local optForceScrollEdge   = load_setting("optForceScrollEdge", 16, 100)
+    local optUseXlat           = load_setting("optUseXlat", 0, 1)
 
     -- convert settings to dialog values
 	local chkPrecedingAsterisk = optPrecedingAsterisk 
