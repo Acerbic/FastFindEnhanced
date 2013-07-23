@@ -43,7 +43,7 @@ local optUseXlat = true
 
 
     --TODO predict-skipping: if all items found for current pattern share the same next chars, they might be skipped
-    --TODO auto bilingual guess (xlat pattern if no matches for current pattern)
+    --TODO auto bilingual guess (xlat pattern if no matches for current lang)
     --TODO prev/next items lists hovering
 
     --TODO Alternative dialog skins

@@ -5,14 +5,23 @@ local common = require ("common_functions")
 
 ffind_cfg.dlgGUID = "{30ed409d-b5e6-4ed0-a3ef-d1757a36b6f5}"
 
--- TODO guard "Scroll margin" input field for 0-100 values only
--- TODO disable "Scroll margin" field if "Better scrolling" is not set
-
 --[[
 Event handler for Fast Find configuration dialog.
 Standard dlgProc function interface
 ]]
 function ffind_cfg.dlg_proc (hDlg, msg, param1, param2)
+
+    if (msg == _F.DN_BTNCLICK and param1==5) then
+        far.SendDlgMessage (hDlg, _F.DM_ENABLE, 6, param2);
+        far.SendDlgMessage (hDlg, _F.DM_ENABLE, 7, param2);
+        far.SendDlgMessage (hDlg, _F.DM_ENABLE, 8, param2);
+    elseif (msg == _F.DN_KILLFOCUS and param1==7) then
+        local newValue = tonumber(common.get_dialog_item_data(hDlg, 7))
+        if (newValue <0 or newValue>100) then
+            common.set_dialog_item_data(hDlg, 7, 16) -- default
+        end
+        return -1
+    end
 end
 
 --[[
@@ -45,9 +54,10 @@ function ffind_cfg.create_dialog()
 --[[4]]        ,{_F.DI_CHECKBOX   ,2,4,0,4,         chkPanelAtBottom,0,0,0,"Put dialog on the bottom"}
 --[[5]]        ,{_F.DI_CHECKBOX   ,2,6,0,6,         chkBetterScrolling,0,0,0,"Better scrolling algorithm"}
 
---[[6]]        ,{_F.DI_TEXT       ,5,7,0,7,         0,0,0,0,"Scroll margin:"}
---[[7]]        ,{_F.DI_EDIT       ,20,7,23,7,       0,0,"999",_F.DIF_MASKEDIT,inpScrollMargin,3}
---[[8]]        ,{_F.DI_TEXT       ,24,7,1,7,        0,0,0,0,"%"}
+--[[6]]        ,{_F.DI_TEXT       ,5,7,0,7,         0,0,0,optDefaultScrolling*_F.DIF_DISABLE,"Scroll margin:"}
+--[[7]]        ,{_F.DI_EDIT       ,20,7,23,7,       0,0,"999",
+                    _F.DIF_MASKEDIT + optDefaultScrolling*_F.DIF_DISABLE,inpScrollMargin,3}
+--[[8]]        ,{_F.DI_TEXT       ,24,7,1,7,        0,0,0,optDefaultScrolling*_F.DIF_DISABLE,"%"}
 
 --[[9]]        ,{_F.DI_CHECKBOX   ,2,9,0,9,         chkUseXlat,0,0,0,"Use XLat for non-English keyboards"}
 
