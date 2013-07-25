@@ -1,0 +1,22 @@
+﻿.Language=English,English
+0  config title
+"FastFind Enhanced configuration"
+
+1
+"Auto '*' a&s 1st char"
+2
+"&Favor shorter matches"
+3
+"Put dialog on the &bottom"
+4
+"Be&tter scrolling algorithm"
+5
+"Scroll mar&gin:"
+6
+"Use &XLat for non-English keyboards"
+
+buttons.
+7
+"OK"
+8
+"Cancel"

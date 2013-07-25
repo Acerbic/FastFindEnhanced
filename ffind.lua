@@ -21,7 +21,7 @@ ffi.cdef[[
 
 local common = require ("common_functions")
 
-ffind.dlgGUID="{ACE12B1C-5FC7-E11F-1337-FA575EA12C14}"       -- fuck teh police
+ffind.dlgGUID="{a1770ccc-5933-4661-bc8c-53192d0c06fa}"
 
 -- these variables are to communicate with the user of the "ffind" module.
 ffind.firstRun = false

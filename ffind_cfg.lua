@@ -47,23 +47,23 @@ function ffind_cfg.create_dialog()
 	local chkUseXlat = optUseXlat
 
 	local dialogItems = {
---[[1]]         {_F.DI_DOUBLEBOX  ,0,0,41,12,       0,0,0,0,"FastFind Enhanced configuration"}
+    -- so, GetMsg is 0-based. Bug?
+--[[1]]         {_F.DI_DOUBLEBOX  ,0,0,41,12,       0,0,0,0,far.GetMsg(0)}
 
---[[2]]        ,{_F.DI_CHECKBOX   ,2,2,0,2,         chkPrecedingAsterisk,0,0,0,"Auto '*' as 1st char"}
---[[3]]        ,{_F.DI_CHECKBOX   ,2,3,0,3,         chkShorterSearch,0,0,0,"Favor shorter matches"}
---[[4]]        ,{_F.DI_CHECKBOX   ,2,4,0,4,         chkPanelAtBottom,0,0,0,"Put dialog on the bottom"}
---[[5]]        ,{_F.DI_CHECKBOX   ,2,6,0,6,         chkBetterScrolling,0,0,0,"Better scrolling algorithm"}
+--[[2]]        ,{_F.DI_CHECKBOX   ,2,2,0,2,         chkPrecedingAsterisk,0,0,0,far.GetMsg(1)}
+--[[3]]        ,{_F.DI_CHECKBOX   ,2,3,0,3,         chkShorterSearch,0,0,0,far.GetMsg(2)}
+--[[4]]        ,{_F.DI_CHECKBOX   ,2,4,0,4,         chkPanelAtBottom,0,0,0,far.GetMsg(3)}
+--[[5]]        ,{_F.DI_CHECKBOX   ,2,6,0,6,         chkBetterScrolling,0,0,0,far.GetMsg(4)}
 
---[[6]]        ,{_F.DI_TEXT       ,5,7,0,7,         0,0,0,optDefaultScrolling*_F.DIF_DISABLE,"Scroll margin:"}
+--[[6]]        ,{_F.DI_TEXT       ,5,7,0,7,         0,0,0,optDefaultScrolling*_F.DIF_DISABLE,far.GetMsg(5)}
 --[[7]]        ,{_F.DI_EDIT       ,20,7,23,7,       0,0,"999",
                     _F.DIF_MASKEDIT + optDefaultScrolling*_F.DIF_DISABLE,inpScrollMargin,3}
---[[8]]        ,{_F.DI_TEXT       ,24,7,1,7,        0,0,0,optDefaultScrolling*_F.DIF_DISABLE,"%"}
+--[[8]]        ,{_F.DI_TEXT       ,24,7,1,7,        0,0,0,optDefaultScrolling*_F.DIF_DISABLE,"% (0..100)"}
 
---[[9]]        ,{_F.DI_CHECKBOX   ,2,9,0,9,         chkUseXlat,0,0,0,"Use XLat for non-English keyboards"}
+--[[9]]        ,{_F.DI_CHECKBOX   ,2,9,0,9,         chkUseXlat,0,0,0,far.GetMsg(6)}
 
---[[10]]       ,{_F.DI_BUTTON     ,9,11,0,11,       0,0,0,_F.DIF_DEFAULTBUTTON,"OK"}
---[[11]]       ,{_F.DI_BUTTON     ,23,11,0,11,      0,0,0,0,"Cancel"}
-
+--[[10]]       ,{_F.DI_BUTTON     ,9,11,0,11,       0,0,0,_F.DIF_DEFAULTBUTTON,far.GetMsg(7)}
+--[[11]]       ,{_F.DI_BUTTON     ,23,11,0,11,      0,0,0,0,far.GetMsg(8)}
 	}
 
     local hDlg = far.DialogInit(ffind_cfg.dlgGUID, -1, -1, 42, 13, nil, dialogItems,

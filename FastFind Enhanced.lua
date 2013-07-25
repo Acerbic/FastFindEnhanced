@@ -1,4 +1,12 @@
-﻿local _F = far.Flags
+﻿-- TODO readme
+-- TODO F1 help (HLF)
+-- TODO Plugin.Call (...)
+-- TODO fix macro/FastFind Enhanced macro.lua to reflect Plugin.Call
+-- TODO "fck the police"
+-- TODO rebuild *.dll to no longer export unneeded shit
+
+
+local _F = far.Flags
 
 function export.Configure(guid)
 	package.loaded.ffind_cfg = nil
