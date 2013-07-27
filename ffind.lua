@@ -1,7 +1,5 @@
 ﻿local ffind = {}
 
-local le = require ("le"); -- for occasional debugging
-
 local ffi = require("ffi")
 ffi.cdef[[
 	void keybd_event(
@@ -20,17 +18,19 @@ ffi.cdef[[
 ]]
 
 local common = require ("common_functions")
+local _F = far.Flags
 
 ffind.dlgGUID="{a1770ccc-5933-4661-bc8c-53192d0c06fa}"
 
+local hDlg = nil -- singleton.
+
 -- these variables are to communicate with the user of the "ffind" module.
-ffind.firstRun = false
 ffind.dieSemaphor = false
 ffind.resendKey = nil
 
+local firstRun = false
 local dontBlinkPlease = false
-local _F = far.Flags
-local width = 36; --dialog width
+local width = 36; --dialog width constant
 
 -- note that search (shorter or not) is different in that it process FULL name, where possible,
 --  not only the part after last "/"
@@ -367,9 +367,10 @@ end
 
 --[[
 This will put given values to dialog elements
-params: hDlg, pattern, countBefore, countAfter
+params: pattern, countBefore, countAfter
 ]]
-local function update_dialog_data (hDlg, pattern, countBefore, countAfter)
+local function update_dialog_data (pattern, countBefore, countAfter)
+    if (not hDlg) then return end
     if ( countAfter > 999 ) then countAfter = 999 end
     if ( countBefore > 999 ) then countBefore = 999 end
     common.set_dialog_item_data(hDlg, 2, pattern);
@@ -406,10 +407,9 @@ end
 --[[ get new position of the dialog to be on a side of active panel across the new cursor position
 note: will work properly only after panel was scrolled to make newPos visible.
 
-params: hDlg (dialog handle)
 returns: {X=integer, Y=integer} (table with dialog's left-top coordinates)
 ]]
-local function calc_new_side_dialog_coords(hDlg)
+local function calc_new_side_dialog_coords()
     local pRect = panel.GetPanelInfo(nil,0).PanelRect; -- passive panel!
     local topItem = panel.GetPanelInfo(nil,1).TopPanelItem
     local curItem = panel.GetPanelInfo(nil,1).CurrentItem
@@ -489,11 +489,11 @@ end
 Do works of keyboard input to the dialog input field. Change pattern, check it against panel,
 update panel and dialog accordingly
 
-params: hDlg, inputRec (InputRecord table)
+params: inputRec (InputRecord table)
 
 returns: true or false to be returned to Far from dlgProc
 ]]
-function ffind.process_input(hDlg, inputRec)
+function ffind.process_input(inputRec)
     local dryKey = get_dry_key(inputRec)
     local pattern = common.get_dialog_item_data(hDlg, 2)
     local newPattern = pattern
@@ -504,7 +504,7 @@ function ffind.process_input(hDlg, inputRec)
         local paste = far.PasteFromClipboard ()
         dontBlinkPlease = true
         for i = 1, paste:len()-1 do --all but the final one
-            ffind.process_input (hDlg, far.NameToInputRecord(paste:sub(i,i)))
+            ffind.process_input (far.NameToInputRecord(paste:sub(i,i)))
         end
         dontBlinkPlease = nil
 
@@ -566,14 +566,14 @@ function ffind.process_input(hDlg, inputRec)
         return true; -- new input does not match anything, ignore this key input
     end
 
-    update_dialog_data(hDlg, newPattern, countBefore, countAfter)
+    update_dialog_data(newPattern, countBefore, countAfter)
 
     local newTopItem = calc_new_panel_top_item(newPos)
     panel.RedrawPanel(nil, 1, {CurrentItem=newPos, TopPanelItem=newTopItem})
 
     -- must move dialog AFTER panel scrolled to the element
     if (optPanelSidePosition) then
-        far.SendDlgMessage(hDlg, _F.DM_MOVEDIALOG, 1, calc_new_side_dialog_coords(hDlg))
+        far.SendDlgMessage(hDlg, _F.DM_MOVEDIALOG, 1, calc_new_side_dialog_coords())
     end
 
     if (not dontBlinkPlease) then
@@ -634,15 +634,24 @@ function ffind.dlg_proc (hDlg, msg, param1, param2)
                 return false
             end
 
-            return ffind.process_input(hDlg, param2) -- pass results to Far
+            return ffind.process_input(param2) -- pass results to Far
         end
     end
 end
 
 function ffind.create_dialog()
+--[[
+              1         2         3
+    012345678901234567890123456789012345
+
+  0 ╔ Fast Find ═══════════════════000╗     ─═══─ 00┐                            ─═══─ 00┐
+  1 ║ ................................ ║   *]-Fast Find     *]=0000FastFind=-  ...........
+  2 ╚══════════════════════════════000╝   ──══──  00┘                          ──══──  00┘
+]]
+
 	local dialogItems = {
 --[[1]]         {_F.DI_DOUBLEBOX  ,0,0,width-1,2,0,0,0,_F.DIF_LEFTTEXT,"Fast Find"}
---[[2]]        ,{_F.DI_EDIT       ,2,1,width-3,1,0,0,0,0,""}
+--[[2]]        ,{_F.DI_EDIT       ,2,1,width-3,1,0,0,0,0, ""}
 --[[3]]        ,{_F.DI_TEXT       ,width-4,0,width-2,0,0,0,0,0,"000"}
 --[[4]]        ,{_F.DI_TEXT       ,width-4,2,width-2,2,0,0,0,0,"000"}
 --[[5]]        ,{_F.DI_TEXT       ,width-5,0,width-5,0,0,0,0,0,""}
@@ -650,7 +659,7 @@ function ffind.create_dialog()
 	}
 
     local left,top,right,bottom = get_std_dialog_rect(width,3)
-	local hDlg = far.DialogInit(ffind.dlgGUID,left,top,right,bottom,nil,dialogItems,
+	hDlg = far.DialogInit(ffind.dlgGUID,left,top,right,bottom,nil,dialogItems,
 		_F.FDLG_KEEPCONSOLETITLE + _F.FDLG_SMALLDIALOG + _F.FDLG_NODRAWSHADOW ,
         ffind.dlg_proc)
 
@@ -667,22 +676,31 @@ function ffind.create_dialog()
 	optDefaultScrolling  = optDefaultScrolling>0
 	optForceScrollEdge   = optForceScrollEdge/200
 	optUseXlat           = optUseXlat>0
-    
-    return hDlg
+
+    -- !! work around some wild bug
+    firstRun = true
+    far.DialogRun(hDlg) -- run and close. Otherwise calls to "process_input" will lock input field into "unchanged" state
+    firstRun = nil
+
+    local optPrecedingAsterisk = common.load_setting("optPrecedingAsterisk",1,1)
+
 end
 
---[[
+function ffind.get_current_ffind_pattern()
+    return hDlg and common.get_dialog_item_data(hDlg, 2)
+end
 
-              1         2         3
-    012345678901234567890123456789012345
+-- essentially a wrapper to support hDlg incapsulation
+function ffind.free_dialog()
+    if (hDlg) then 
+        far.DialogFree(hDlg)
+        hDlg = nil
+    end
+end
 
-  0 ╔ Fast Find ═══════════════════000╗     ─═══─ 00┐                            ─═══─ 00┐
-  1 ║ ................................ ║   *]-Fast Find     *]=0000FastFind=-  ...........
-  2 ╚══════════════════════════════000╝   ──══──  00┘                          ──══──  00┘
-
-    012345678901234567890123456789012345
-
-]]
-
+-- essentially a wrapper to support hDlg incapsulation
+function ffind.run_dialog()
+    return hDlg and far.DialogRun(hDlg)
+end
 
 return ffind

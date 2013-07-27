@@ -39,38 +39,29 @@ end
 
 function export.Open(openFrom, guid, item)
     -- since we use a generic dll as a proxy Far thinks we export every function possible.
-    if (openFrom == _F.OPEN_FINDLIST ) then
+    if (openFrom == _F.OPEN_FINDLIST) then
         return nil
+    end
+local ffind
+    ffind = require "ffind"
+
+    if (openFrom == _F.OPEN_FROMMACRO) then
+        require "le"(ffind.get_current_ffind_pattern())
+        return
     end
 
     package.loaded.ffind = nil
-    local ffind = require "ffind"
+    ffind = require "ffind"
 
-    local settingsObj = far.CreateSettings ()
-    local optPrecedingAsterisk = settingsObj:Get(0, "optPrecedingAsterisk", _F.FST_QWORD) or 1
-    optPrecedingAsterisk = optPrecedingAsterisk>0
-    far.FreeSettings ( settingsObj )
-
-    local hDlg = ffind.create_dialog()
-
-    -- !! work around some wild bug
-    ffind.firstRun = true
-    far.DialogRun(hDlg) -- run and close. Otherwise calls to "process_input" will lock input field into "unchanged" state
-    ffind.firstRun = nil
-
-	-- initialize dialog with input string
-    if (optPrecedingAsterisk) then
-        local inprec = far.NameToInputRecord("*")
-        ffind.process_input(hDlg, inprec)
-	end
+    ffind.create_dialog()
 
 	--main loop
     while (not ffind.dieSemaphor) do
-        far.DialogRun(hDlg)
+        ffind.run_dialog()
     end
     ffind.dieSemaphor = nil
 
-    far.DialogFree(hDlg)
+    ffind.free_dialog()
 
     if (ffind.resendKey) then
     	far.MacroPost ('Keys("'..ffind.resendKey..'")') -- note quotes usage,
