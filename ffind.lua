@@ -329,7 +329,9 @@ returns: keyName - as if pressed without Alt
          "Terminate" to close this dialog and pass the key pressed through to Far
 ]]
 local function get_dry_key (inprec)
-    -- OK. First draft: ignoring XLat and multilangual complications
+    -- super-special case of running the process_input for the first time to init variables
+    if (not inprec) then return "" end 
+
     local ctrl,alt,shift,key = far.InputRecordToName (inprec, true)
     local comboKey = far.InputRecordToName (inprec)
 
@@ -536,6 +538,11 @@ function ffind.process_input(inputRec)
         ffind.dieSemaphor = true;
         return false -- close naturally by Esc
 
+    -- just init with blank
+    elseif (dryKey == "") then
+        newPattern = ""
+        searchDirection = "current"
+
     -- dryKey is a simple character.
     elseif (type(dryKey) == "string" and dryKey:len() == 1) then
         if (pattern:sub(-1,-1) == '*' and ((dryKey=='*') or (dryKey=='?'))) then
@@ -618,8 +625,8 @@ Event handler for Fast Find dialog.
 Standard dlgProc function interface
 ]]
 function ffind.dlg_proc (hDlg, msg, param1, param2)
-    if (ffind.firstRun) then
-        ffind.firstRun = nil
+    if (firstRun) then
+        firstRun = nil
         far.SendDlgMessage(hDlg, _F.DM_EDITUNCHANGEDFLAG, 2, 0) -- drop "unchanged"
         far.SendDlgMessage (hDlg, _F.DM_CLOSE, -1, 0) -- blink the dialog to update panel views
         return
@@ -648,7 +655,6 @@ function ffind.create_dialog()
   1 ║ ................................ ║   *]-Fast Find     *]=0000FastFind=-  ...........
   2 ╚══════════════════════════════000╝   ──══──  00┘                          ──══──  00┘
 ]]
-
 	local dialogItems = {
 --[[1]]         {_F.DI_DOUBLEBOX  ,0,0,width-1,2,0,0,0,_F.DIF_LEFTTEXT,"Fast Find"}
 --[[2]]        ,{_F.DI_EDIT       ,2,1,width-3,1,0,0,0,0, ""}
@@ -680,10 +686,11 @@ function ffind.create_dialog()
     -- !! work around some wild bug
     firstRun = true
     far.DialogRun(hDlg) -- run and close. Otherwise calls to "process_input" will lock input field into "unchanged" state
-    firstRun = nil
 
+    -- initialize dialog with input string              
     local optPrecedingAsterisk = common.load_setting("optPrecedingAsterisk",1,1)
-
+    local inprec = (optPrecedingAsterisk > 0) and far.NameToInputRecord("*")
+    ffind.process_input(inprec) -- also repositions the dlg
 end
 
 function ffind.get_current_ffind_pattern()

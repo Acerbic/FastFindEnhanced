@@ -1,8 +1,6 @@
 ﻿-- TODO readme
 -- TODO F1 help (HLF)
--- TODO Plugin.Call (...)
--- TODO fix macro/FastFind Enhanced macro.lua to reflect Plugin.Call
--- TODO "fck the police"
+-- TODO "fck the police" - dun fget to fix tha macro as well
 -- TODO rebuild *.dll to no longer export unneeded shit
 
 
@@ -42,12 +40,12 @@ function export.Open(openFrom, guid, item)
     if (openFrom == _F.OPEN_FINDLIST) then
         return nil
     end
-local ffind
-    ffind = require "ffind"
 
-    if (openFrom == _F.OPEN_FROMMACRO) then
-        require "le"(ffind.get_current_ffind_pattern())
-        return
+    local ffind = require "ffind" -- module is shared between instances through Far caching. Kinda frail, I know.
+
+    -- command "2" - get current input string
+    if (openFrom==_F.OPEN_FROMMACRO and item.n>0 and item[1]==2) then
+        return ffind.get_current_ffind_pattern()
     end
 
     package.loaded.ffind = nil
