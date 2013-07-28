@@ -27,10 +27,10 @@ function export.GetPluginInfo ()
   	return {
       Flags = _F.PF_NONE,
 
-      PluginMenuStrings = {"FastFind Enhanced"},
+      PluginMenuStrings = {far.GetMsg(10)},
       PluginMenuGuids = win.Uuid("8195eb6d-9651-4d60-9a16-ed0d90e20be7"),
 
-      PluginConfigStrings = {"FastFind Enhanced"},
+      PluginConfigStrings = {far.GetMsg(10)},
       PluginConfigGuids = win.Uuid("22595d6e-fc1e-4317-9935-5e9d3a39bea7")
 	}
 end

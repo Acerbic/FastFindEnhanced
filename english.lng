@@ -1,4 +1,5 @@
 ﻿.Language=English,English
+
 0  config title
 "FastFind Enhanced configuration"
 
@@ -20,3 +21,9 @@ buttons.
 "OK"
 8
 "Cancel"
+
+9 main dialog title
+"FastFind Enhanced"
+
+10 plugin name
+"FastFind Enhanced"

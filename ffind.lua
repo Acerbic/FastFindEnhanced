@@ -85,8 +85,8 @@ local function prepare_pattern(pattern)
     end
 
     regexPattern = regex.gsub(regexPattern, "([()|^$.[{+\\]\\/\\\\])","\\%1")
-    regexPattern = regex.gsub(regexPattern,"[?]",".")
-    regexPattern = regex.gsub(regexPattern,"[*]",".*")
+    regexPattern = regex.gsub(regexPattern, "[?]",".")
+    regexPattern = regex.gsub(regexPattern, "[*]",".*")
 
     if (regexPattern:sub(1,2)==".*") then
         --remove 1st '.*' if any (otherwise all matchings will be found from pos 1)
@@ -656,7 +656,7 @@ function ffind.create_dialog()
   2 ╚══════════════════════════════000╝   ──══──  00┘                          ──══──  00┘
 ]]
 	local dialogItems = {
---[[1]]         {_F.DI_DOUBLEBOX  ,0,0,width-1,2,0,0,0,_F.DIF_LEFTTEXT,"Fast Find"}
+--[[1]]         {_F.DI_DOUBLEBOX  ,0,0,width-1,2,0,0,0,_F.DIF_LEFTTEXT,far.GetMsg(9)}
 --[[2]]        ,{_F.DI_EDIT       ,2,1,width-3,1,0,0,0,0, ""}
 --[[3]]        ,{_F.DI_TEXT       ,width-4,0,width-2,0,0,0,0,0,"000"}
 --[[4]]        ,{_F.DI_TEXT       ,width-4,2,width-2,2,0,0,0,0,"000"}
