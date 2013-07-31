@@ -3,11 +3,15 @@
 -- TODO "fck the police" - dun fget to fix tha macro as well
 -- TODO rebuild *.dll to no longer export unneeded shit
 
+-- TODO First-called (macro) Alt-Adown-Bdown causes "BA" sequence
+--- ?? pass the first letter to Plugin.Call ??
 
 local _F = far.Flags
+local hDlg = nil  --singleton
 
 function export.Configure(guid)
 	package.loaded.ffind_cfg = nil
+    package.loaded.ffind = nil
 	local ffind_cfg = require "ffind_cfg"
 
 	local hDlg = ffind_cfg.create_dialog()
@@ -41,25 +45,24 @@ function export.Open(openFrom, guid, item)
         return nil
     end
 
-    local ffind = require "ffind" -- module is shared between instances through Far caching. Kinda frail, I know.
+    local ffind = require "ffind"
 
     -- command "2" - get current input string
     if (openFrom==_F.OPEN_FROMMACRO and item.n>0 and item[1]==2) then
-        return ffind.get_current_ffind_pattern()
+        return hDlg and ffind.get_current_ffind_pattern(hDlg)
     end
 
-    package.loaded.ffind = nil
-    ffind = require "ffind"
+    if (hDlg) then return nil end -- singleton
 
-    ffind.create_dialog()
+    hDlg = ffind.create_dialog()
 
 	--main loop
     while (not ffind.dieSemaphor) do
-        ffind.run_dialog()
+        far.DialogRun(hDlg)
     end
     ffind.dieSemaphor = nil
 
-    ffind.free_dialog()
+    far.DialogFree(hDlg)
 
     if (ffind.resendKey) then
     	far.MacroPost ('Keys("'..ffind.resendKey..'")') -- note quotes usage,
@@ -67,5 +70,5 @@ function export.Open(openFrom, guid, item)
     	--   are not pressed, and is checked against filenames inside the dialog)
     	ffind.resendKey = nil
     end
-
+    hDlg = nil
 end

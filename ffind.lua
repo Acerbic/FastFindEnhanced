@@ -22,8 +22,6 @@ local _F = far.Flags
 
 ffind.dlgGUID="{a1770ccc-5933-4661-bc8c-53192d0c06fa}"
 
-local hDlg = nil -- singleton.
-
 -- these variables are to communicate with the user of the "ffind" module.
 ffind.dieSemaphor = false
 ffind.resendKey = nil
@@ -371,8 +369,7 @@ end
 This will put given values to dialog elements
 params: pattern, countBefore, countAfter
 ]]
-local function update_dialog_data (pattern, countBefore, countAfter)
-    if (not hDlg) then return end
+local function update_dialog_data (hDlg, pattern, countBefore, countAfter)
     if ( countAfter > 999 ) then countAfter = 999 end
     if ( countBefore > 999 ) then countBefore = 999 end
     common.set_dialog_item_data(hDlg, 2, pattern);
@@ -495,7 +492,7 @@ params: inputRec (InputRecord table)
 
 returns: true or false to be returned to Far from dlgProc
 ]]
-function ffind.process_input(inputRec)
+function ffind.process_input(hDlg, inputRec)
     local dryKey = get_dry_key(inputRec)
     local pattern = common.get_dialog_item_data(hDlg, 2)
     local newPattern = pattern
@@ -506,7 +503,7 @@ function ffind.process_input(inputRec)
         local paste = far.PasteFromClipboard ()
         dontBlinkPlease = true
         for i = 1, paste:len()-1 do --all but the final one
-            ffind.process_input (far.NameToInputRecord(paste:sub(i,i)))
+            ffind.process_input (hDlg, far.NameToInputRecord(paste:sub(i,i)))
         end
         dontBlinkPlease = nil
 
@@ -573,7 +570,7 @@ function ffind.process_input(inputRec)
         return true; -- new input does not match anything, ignore this key input
     end
 
-    update_dialog_data(newPattern, countBefore, countAfter)
+    update_dialog_data(hDlg, newPattern, countBefore, countAfter)
 
     local newTopItem = calc_new_panel_top_item(newPos)
     panel.RedrawPanel(nil, 1, {CurrentItem=newPos, TopPanelItem=newTopItem})
@@ -641,7 +638,7 @@ function ffind.dlg_proc (hDlg, msg, param1, param2)
                 return false
             end
 
-            return ffind.process_input(param2) -- pass results to Far
+            return ffind.process_input(hDlg, param2) -- pass results to Far
         end
     end
 end
@@ -665,7 +662,7 @@ function ffind.create_dialog()
 	}
 
     local left,top,right,bottom = get_std_dialog_rect(width,3)
-	hDlg = far.DialogInit(ffind.dlgGUID,left,top,right,bottom,nil,dialogItems,
+	local hDlg = far.DialogInit(ffind.dlgGUID,left,top,right,bottom,nil,dialogItems,
 		_F.FDLG_KEEPCONSOLETITLE + _F.FDLG_SMALLDIALOG + _F.FDLG_NODRAWSHADOW ,
         ffind.dlg_proc)
 
@@ -690,24 +687,13 @@ function ffind.create_dialog()
     -- initialize dialog with input string              
     local optPrecedingAsterisk = common.load_setting("optPrecedingAsterisk",1,1)
     local inprec = (optPrecedingAsterisk > 0) and far.NameToInputRecord("*")
-    ffind.process_input(inprec) -- also repositions the dlg
+    ffind.process_input(hDlg, inprec) -- also repositions the dlg
+
+    return hDlg
 end
 
-function ffind.get_current_ffind_pattern()
-    return hDlg and common.get_dialog_item_data(hDlg, 2)
-end
-
--- essentially a wrapper to support hDlg incapsulation
-function ffind.free_dialog()
-    if (hDlg) then 
-        far.DialogFree(hDlg)
-        hDlg = nil
-    end
-end
-
--- essentially a wrapper to support hDlg incapsulation
-function ffind.run_dialog()
-    return hDlg and far.DialogRun(hDlg)
+function ffind.get_current_ffind_pattern(hDlg)
+    return common.get_dialog_item_data(hDlg, 2)
 end
 
 return ffind
