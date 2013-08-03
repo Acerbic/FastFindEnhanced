@@ -3,9 +3,6 @@
 -- TODO "fck the police" - dun fget to fix tha macro as well
 -- TODO rebuild *.dll to no longer export unneeded shit
 
--- TODO First-called (macro) Alt-Adown-Bdown causes "BA" sequence
---- ?? pass the first letter to Plugin.Call ??
-
 local _F = far.Flags
 local hDlg = nil  --singleton
 
@@ -27,7 +24,6 @@ function export.Configure(guid)
 end
 
 function export.GetPluginInfo ()
-
   	return {
       Flags = _F.PF_NONE,
 
@@ -46,15 +42,22 @@ function export.Open(openFrom, guid, item)
     end
 
     local ffind = require "ffind"
+    -- if called from macro, pass the invoking key into ffind dialog
+    local akeyPassed = nil
 
     -- command "2" - get current input string
-    if (openFrom==_F.OPEN_FROMMACRO and item.n>0 and item[1]==2) then
+    if (openFrom==_F.OPEN_FROMMACRO and item.n>=0 and item[1]==2) then
         return hDlg and ffind.get_current_ffind_pattern(hDlg)
+    end
+
+    -- command "1" - open with a starting char
+    if (openFrom==_F.OPEN_FROMMACRO and item.n>=1 and item[1]==1 and item[2]) then
+        akeyPassed = item[2]
     end
 
     if (hDlg) then return nil end -- singleton
 
-    hDlg = ffind.create_dialog()
+    hDlg = ffind.create_dialog(akeyPassed)
 
 	--main loop
     while (not ffind.dieSemaphor) do

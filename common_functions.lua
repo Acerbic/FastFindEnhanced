@@ -1,4 +1,7 @@
-﻿-- this module contain some not ffind-specific functions to help working with Far API
+﻿--
+-- this module contains some not ffind-specific functions to help working with Far API
+--
+
 local common_functions = {}
 local _F = far.Flags
 
@@ -9,7 +12,7 @@ Params: hDlg,
 		itemIndex,
 		newValue
 
-returns: true on success
+Returns: true on success
          false on failure
 ]]
 function common_functions.set_dialog_item_data(hDlg, itemNum, data)
@@ -21,10 +24,10 @@ end
 
 --[[
 Get value of a dialog item
-params: hDlg,
+Params: hDlg,
 		itemIndex
 
-returns: value
+Returns: value
          nil on falure
 ]]
 function common_functions.get_dialog_item_data(hDlg, itemNum)
@@ -32,11 +35,12 @@ function common_functions.get_dialog_item_data(hDlg, itemNum)
     return inputField and inputField[10];
 end
 
---[[ load a named setting from Far's database, check agains a constraint (>=1)
+--[[ 
+Load a named QWORD setting from Far's database, check agains a constraint (>=1)
 and assing default_value if something is wrong
 
-params: name - name of the setting to load
-        defaultValue - if setting is out of range or not defined, this is returned
+params: name - (string) name of the setting to load
+        defaultValue - if setting is out of range or isn't defined, this value is returned
         constraint - a maximum value for the setting (a number)
 
 returns: the value of loaded setting
@@ -46,6 +50,7 @@ function common_functions.load_setting(name, defaultValue, constraint)
     local setting = settingsObj:Get(0, name, _F.FST_QWORD)
 
     setting = setting and setting <= constraint and setting or defaultValue
+    -- if you are like "whaa...?" after the line above, then welcome to Lua, son.
 
     far.FreeSettings ( settingsObj )
     return setting
