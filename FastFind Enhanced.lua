@@ -1,13 +1,12 @@
-﻿-- TODO readme
--- TODO F1 help (HLF)
+﻿-- TODO F1 help (HLF)
 -- TODO rebuild *.dll to no longer export unneeded shit
 
 local _F = far.Flags
 local hDlg = nil  --singleton
 
 function export.Configure(guid)
-	package.loaded.ffind_cfg = nil
-    package.loaded.ffind = nil
+--	package.loaded.ffind_cfg = nil
+--    package.loaded.ffind = nil
 	local ffind_cfg = require "ffind_cfg"
 
 	local hDlg = ffind_cfg.create_dialog()
@@ -57,6 +56,7 @@ function export.Open(openFrom, guid, item)
     if (hDlg) then return nil end -- singleton
 
     hDlg = ffind.create_dialog(akeyPassed)
+    if (not hDlg) then return nil end
 
 	--main loop
     while (not ffind.dieSemaphor) do

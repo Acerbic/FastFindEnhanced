@@ -1,12 +1,11 @@
 ﻿--TODO predict-skipping: if all items found for current pattern share the same next chars, they might be skipped
 --TODO auto bilingual guess (xlat pattern if no matches for current lang)
 --TODO prev/next items lists hovering
-
---TODO Alternative dialog skins
---TODO (prob never) "overlay mask" mode for minimalistic skin
-
 --TODO KEY_OP_XLAT KEY_OP_PLAINTEXT??
+
 --TODO (minor) make dialog re-positioning (and pattern matching?) when it is shown, not closed?
+--TODO (unlikely) Alternative dialog skins
+--TODO (prob never) "overlay mask" mode for minimalistic skin
 local ffind = {}
 
 local ffi = require("ffi")
@@ -40,8 +39,8 @@ local firstRun = false
 local dontBlinkPlease = false
 local width = 36; --dialog width constant
 
--- note that search (shorter or not) is different in that it process FULL name, where possible,
---  not only the part after last "/"
+-- note that search (shorter or not) is different from natice in that it process FULL name, 
+-- where possible, not only the part after last "/"
 
 local optShorterSearch = true
 local optPanelSidePosition = true
@@ -69,7 +68,7 @@ Compiles a search pattern and parses it for "onlyFolders" flag
 
 Params: pattern (string)
 
-returns: regexObject (compiled pattern), onlyFolders(boolean)
+returns: regexObject (compiled pattern), onlyFolders (boolean)
 ]]
 local function prepare_pattern(pattern)
     local regexPattern = pattern
@@ -293,7 +292,7 @@ local function un_alt (inprec)
 			ffi.C.keybd_event(vkLAlt, scLAlt, 0, 0) -- lALT repress
 		end
 
-		return "Ignore"
+		return "Ignore" -- ignore this one, the Windows will send a new "fixed" key right after
 	end
 -- My original plan was to convert Alt[Shift]Key -> char in-house with respect to CAPS and
 --   current keyboard locale and without build-in XLAT from Far (I don't trust it, tbh).
@@ -301,7 +300,7 @@ local function un_alt (inprec)
 
 -- GetKeyboardLayout() doesn't read a correct layout from "current" thread. Instead, you must
 --   locate a hosting 'conhost.exe' thread in Win7 and dog knows what on other OS's (there is code 
---   for that on the net, but its not trivial and possibly needs UAC approval)
+--   for that on the net, but its not trivial and possibly needs an UAC approval)
 
 -- MapVirtualKeyEx() does not work, seemingly
 
@@ -311,7 +310,7 @@ end
 
 
 --[[
-Convert InputRecord to a key name relevant to this dialog input
+Convert InputRecord to a key name (character) relevant to this dialog input
 
 params: inputRecord
 
@@ -323,7 +322,7 @@ returns: keyName - as if pressed without Alt
          "\" for BackSlash
          "Ignore" if the key is to be ignored
          "Default" for default processing of the key by Far
-         "Terminate" to close this dialog and pass the key pressed through to Far
+         "Terminate" to close this dialog and pass through the key pressed to Far
 ]]
 local function get_dry_key (inprec)
     -- super-special case of running the process_input for the first time to init variables
@@ -345,18 +344,19 @@ local function get_dry_key (inprec)
     if (ctrl and key=="Enter") then
         return shift and "AltUp" or "AltDown"
     end
-    if (ctrl) then return nil end -- return nil if Ctrl*Key
+    if (ctrl) then return "Terminate" end -- close dialog if Ctrl*Key
     if (alt and not shift and ((key=="Up") or (key=="Down") or (key=="Home") or (key=="End"))) then
         return "Alt"..key
     end
     if (key == "Multiply") then return "*" end -- (R?Alt)?(Shift)?numMul
     if (not shift and key == "BackSlash") then return "\\" end -- (R?Alt)?BackSlash
 
-    -- need to filter out all non-filename keypresses, like F1 or LeftArrow, Tab
+    -- need to filter out all non-filename related keypresses, like F1 or LeftArrow, Tab
+    -- un(der)documented feature - when Far cannot produce proper UnicodeChar value it puts in a 
+    --  string containing 1 char with code \00
 	if (inprec.UnicodeChar:byte()==0 or key=="Enter" or key=="Tab") then
 		return "Terminate"
 	end
-
 
     if (not alt) then return key end -- return Key if ShiftKey or Key
 
