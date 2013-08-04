@@ -1,6 +1,7 @@
 ﻿-- TODO readme
 -- TODO F1 help (HLF)
 -- TODO "fck the police" - dun fget to fix tha macro as well
+-- TODO fix "fck the police" in readme
 -- TODO rebuild *.dll to no longer export unneeded shit
 
 local _F = far.Flags
