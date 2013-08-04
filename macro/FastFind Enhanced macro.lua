@@ -1,9 +1,9 @@
 ﻿Macro {
-  description="FastFind Enhancer starter";
+  description="FastFind Enhanced starter";
   area="Shell";
   key="/Alt(Shift)?./";
   flags="";
   action=function()
-    Plugin.Call("ace12b1c-5fc7-e11f-1337-fa575ea12c11", 1, akey(1))
+    Plugin.Call("3106d308-a685-415c-96e6-84c8ebb361fe", 1, akey(1))
   end;
 }
