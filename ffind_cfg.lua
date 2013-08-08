@@ -4,7 +4,8 @@ local ffind_cfg = {}
 local common = require ("common_functions")
 
 ffind_cfg.dlgGUID = "{30ed409d-b5e6-4ed0-a3ef-d1757a36b6f5}"
-
+local inpScrollMargin = ""
+local defaultMargin = 16
 --[[
 Event handler for Fast Find configuration dialog.
 Standard dlgProc function interface
@@ -16,11 +17,46 @@ function ffind_cfg.dlg_proc (hDlg, msg, param1, param2)
         far.SendDlgMessage (hDlg, _F.DM_ENABLE, 7, param2);
         far.SendDlgMessage (hDlg, _F.DM_ENABLE, 8, param2);
     elseif (msg == _F.DN_KILLFOCUS and param1==7) then
-        local newValue = tonumber(common.get_dialog_item_data(hDlg, 7))
-        if (newValue <0 or newValue>100) then
-            common.set_dialog_item_data(hDlg, 7, 16) -- default
+        local newValue = tonumber(common.get_dialog_item_data(hDlg, 7)) -- can be nil if edit==""
+        if (not newValue or newValue <0 or newValue >100) then
+            inpScrollMargin = tostring(defaultMargin)
+            common.set_dialog_item_data(hDlg, 7, inpScrollMargin) -- default
         end
         return -1
+    elseif (msg == _F. DN_EDITCHANGE and param1==7) then
+        local newEditString = param2[10]
+        local selectIt = false
+        if (regex.match(newEditString, "^[0-9]*$")) then
+            -- accept changes
+            local newValue = tonumber(newEditString) -- can be nil if edit==""
+            if (newValue and newValue >100) then
+                newValue = 100
+                selectIt = true
+
+            end
+
+            if (newEditString == "") then
+                inpScrollMargin = ""
+            else 
+                inpScrollMargin = tostring(tonumber(newValue))  -- leading zeroes is string
+                common.set_dialog_item_data(hDlg, 7, inpScrollMargin)
+            end
+
+            if (selectIt) then
+                far.SendDlgMessage(hDlg, _F.DM_SETSELECTION, 7,
+                    {BlockType = _F.BTYPE_STREAM,
+                     BlockStartLine = -1,
+                     BlockStartPos = 1,
+                     BlockWidth = inpScrollMargin:len(),
+                     BlockHeight = 1
+                    }
+                )
+            end
+            return true
+        end
+        -- reset to prev value
+        common.set_dialog_item_data(hDlg, 7, inpScrollMargin)
+        return false
     end
 end
 
@@ -35,7 +71,7 @@ function ffind_cfg.create_dialog()
     local optShorterSearch     = common.load_setting("optShorterSearch", 1, 1)
     local optPanelSidePosition = common.load_setting("optPanelSidePosition", 1, 1)
     local optDefaultScrolling  = common.load_setting("optDefaultScrolling", 0, 1)
-    local optForceScrollEdge   = common.load_setting("optForceScrollEdge", 16, 100)
+    local optForceScrollEdge   = common.load_setting("optForceScrollEdge", defaultMargin, 100)
     local optUseXlat           = common.load_setting("optUseXlat", 0, 1)
 
     -- convert settings to dialog values
@@ -43,7 +79,7 @@ function ffind_cfg.create_dialog()
 	local chkShorterSearch = optShorterSearch
 	local chkPanelAtBottom = 1 - optPanelSidePosition
 	local chkBetterScrolling = 1 - optDefaultScrolling
-	local inpScrollMargin = tostring(optForceScrollEdge)
+	inpScrollMargin = tostring(optForceScrollEdge) -- module-wide variable
 	local chkUseXlat = optUseXlat
 
 	local dialogItems = {
@@ -56,8 +92,9 @@ function ffind_cfg.create_dialog()
 --[[5]]        ,{_F.DI_CHECKBOX   ,2,6,0,6,         chkBetterScrolling,0,0,0,far.GetMsg(4)}
 
 --[[6]]        ,{_F.DI_TEXT       ,5,7,0,7,         0,0,0,optDefaultScrolling*_F.DIF_DISABLE,far.GetMsg(5)}
---[[7]]        ,{_F.DI_EDIT       ,20,7,23,7,       0,0,"999",
-                    _F.DIF_MASKEDIT + optDefaultScrolling*_F.DIF_DISABLE,inpScrollMargin,3}
+--[[7]]        ,{_F.DI_EDIT       ,20,7,23,7,       0,0,"9999",
+                    _F.DIF_MASKEDIT + optDefaultScrolling*_F.DIF_DISABLE ,--+ _F.DIF_SELECTONENTRY,
+                    inpScrollMargin,4}
 --[[8]]        ,{_F.DI_TEXT       ,24,7,1,7,        0,0,0,optDefaultScrolling*_F.DIF_DISABLE,"% (0..100)"}
 
 --[[9]]        ,{_F.DI_CHECKBOX   ,2,9,0,9,         chkUseXlat,0,0,0,far.GetMsg(6)}
@@ -79,7 +116,7 @@ function ffind_cfg.save_settings(hDlg)
     local optShorterSearch     = far.GetDlgItem(hDlg, 3)[6]
     local optPanelSidePosition = 1- far.GetDlgItem(hDlg, 4)[6]
     local optDefaultScrolling  = 1- far.GetDlgItem(hDlg, 5)[6]
-    local optForceScrollEdge   = tonumber(common.get_dialog_item_data(hDlg, 7))
+    local optForceScrollEdge   = tonumber(common.get_dialog_item_data(hDlg, 7)) or defaultMargin
     local optUseXlat           = far.GetDlgItem(hDlg, 9)[6]
 
     local settingsObj = far.CreateSettings ()

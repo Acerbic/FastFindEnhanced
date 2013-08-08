@@ -5,7 +5,7 @@ local _F = far.Flags
 local hDlg = nil  --singleton
 
 function export.Configure(guid)
---	package.loaded.ffind_cfg = nil
+	package.loaded.ffind_cfg = nil
 --    package.loaded.ffind = nil
 	local ffind_cfg = require "ffind_cfg"
 
