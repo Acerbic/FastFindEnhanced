@@ -17,11 +17,12 @@ reposition cursor to the file matching a pattern you entered.
    a search;
  - preference to matches closer to the beginning of a file name, i.e. 
    '*im' pattern will be matched to 'my images' first and to 
-   'Summercamp.img' second;
+   'Summercamp.img' second (if disabled then the next matching in the 
+   file list will be selected - default Far Manager behaviour);
  - more intuitive scrolling in panels with a great number of files;
  - alternative handling of non-English input while Alt is held - with 
    or without using XLat. (Pick the best fitting your locale);
- - Fancy 'side stick' dialog placement.
+ - Fancy 'side stick' dialogue placement.
 
 -== Controls ==-
 
@@ -41,7 +42,7 @@ plugin is already running on screen then nothing happens.
 Plugin.Call("3106d308-a685-415c-96e6-84c8ebb361fe", 1, akey(1))
 
   Arguments: 2
-  Returns current match pattern from the FastFind dialog. If plugin is
+  Returns current match pattern from the FastFind dialogue. If plugin is
 not running, returns nil.
 
 Plugin.Call("3106d308-a685-415c-96e6-84c8ebb361fe", 2)

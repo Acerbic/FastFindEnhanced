@@ -1,12 +1,11 @@
 ﻿-- TODO F1 help (HLF)
--- TODO rebuild *.dll to no longer export unneeded shit
 
 local _F = far.Flags
 local hDlg = nil  --singleton
 
 function export.Configure(guid)
 	package.loaded.ffind_cfg = nil
---    package.loaded.ffind = nil
+    package.loaded.ffind = nil
 	local ffind_cfg = require "ffind_cfg"
 
 	local hDlg = ffind_cfg.create_dialog()
@@ -34,12 +33,8 @@ function export.GetPluginInfo ()
 end
 
 function export.Open(openFrom, guid, item)
-    -- since we use a generic dll as a proxy Far thinks we export every function possible.
-    if (openFrom == _F.OPEN_FINDLIST) then
-        return nil
-    end
-
     local ffind = require "ffind"
+
     -- if called from macro, pass the invoking key into ffind dialog
     local akeyPassed = nil
 
