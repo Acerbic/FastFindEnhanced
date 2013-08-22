@@ -1,4 +1,7 @@
 ﻿-- TODO F1 help (HLF)
+-- TODO open from dialog via F11 fix
+-- TODO Downwards scrolling 1 extra line flex
+
 
 local _F = far.Flags
 local hDlg = nil  --singleton

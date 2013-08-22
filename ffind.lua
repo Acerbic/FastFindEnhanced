@@ -104,8 +104,10 @@ params: pattern of search (string),
 returns: newPositionIndex(nil/false or integer), countBefore, countAfter
 ]]
 local function get_new_cursor_position(pattern, direction)
-    local items = get_apanel_items()
     local refInd = panel.GetPanelInfo(nil,1).CurrentItem;
+
+
+    local items = get_apanel_items()
 
     local regexObject, onlyFolders = prepare_pattern(pattern)
 	local countBefore, countAfter = 0, 0
@@ -128,6 +130,7 @@ local function get_new_cursor_position(pattern, direction)
         end
     end
 
+    if (pattern =="") then return  refInd, 0, 0 end
     if (not firstMatched) then return nil, 0, 0 end  -- no matching at all
 
     -- below this line firstMatched is not nil and lastMatched is not nil
@@ -279,7 +282,7 @@ local function un_alt (inprec)
 			ffi.C.keybd_event(vkRAlt, scRAlt, 3, 0) -- rALT  unpress
 		end
 
-		-- I don't have a tiniest of clue how this will interact with fancy input locales, 
+		-- I don't have a tiniest clue how this will interact with fancy input locales, 
         --  like hierogliphics or voice input
 		ffi.C.keybd_event(inprec.VirtualKeyCode, inprec.VirtualScanCode, 0, 0)
 		ffi.C.keybd_event(inprec.VirtualKeyCode, inprec.VirtualScanCode, 2, 0)
@@ -323,6 +326,7 @@ returns: keyName - as if pressed without Alt
          "Ignore" if the key is to be ignored
          "Default" for default processing of the key by Far
          "Terminate" to close this dialog and pass through the key pressed to Far
+         "" if inputRecord is nil
 ]]
 local function get_dry_key (inprec)
     -- super-special case of running the process_input for the first time to init variables
@@ -437,18 +441,19 @@ Params: newPos (index of the item to move cursor to)
 Returns: newTopItem (top element after scrolling)
 ]]
 local function calc_new_panel_top_item(newPos)
-    local newTopItem = panel.GetPanelInfo(nil,1).TopPanelItem -- default to current top item
+    local topItem = panel.GetPanelInfo(nil,1).TopPanelItem -- current top item
 
     if (newPos ~= panel.GetPanelInfo(nil,1).CurrentItem) then
         local pRect = panel.GetPanelInfo(nil,1).PanelRect;
-        local totalItemLines = get_lines_per_column(pRect)
+        local columnItemLines = get_lines_per_column(pRect)
         if (optDefaultScrolling) then
             -- center current element in the 1st column if scrolling is possible (FAR standard behavior)
-            newTopItem = newPos-totalItemLines/2
+            return (newPos - math.floor(columnItemLines/2))
         else
             -- alternative scrolling
 
         	-- in case of multiple filename columns
+
             local panelMode = panel.GetColumnTypes(nil,1)
             local numNameColumns = 0
             local from, to = 1, 0
@@ -460,29 +465,37 @@ local function calc_new_panel_top_item(newPos)
                  end
             end
 
-            totalItemLines = totalItemLines * numNameColumns
+            local totalItemLines = columnItemLines * numNameColumns
 
-            -- ==0 if newPos already in center, ==0.5 if newPos on the edge of the panel
-            -- >0.5 if off screen
-            local relOffset = (newTopItem + totalItemLines/2 - newPos)/totalItemLines
+            -- offset from current middle of the panel
+            local newPosOffset = newPos - (topItem + (totalItemLines-1)/2) -- can be a fraction like 40.5 (in-between)
 
-            local edgePercent = optForceScrollEdge / numNameColumns --scale edge according to number of columns
-            if (math.abs(relOffset)+edgePercent>0.5) then -- need to scroll
-                if (math.abs(relOffset)>0.5) then
-                    -- big scroll and center
-                    newTopItem = newPos-totalItemLines/2
-                else
-                    -- mini scroll and put on edge
-                    if (relOffset>0) then
-                        newTopItem = newPos - edgePercent*totalItemLines
+            -- if new item is within edge region, scrolling must happen
+--            local edgeBand = math.floor(optForceScrollEdge * columnItemLines)
+            local edgeBand = math.floor(optForceScrollEdge * totalItemLines)
+
+            -- band must be >0 and 2*edgeBand < totalItemLines
+            local maxBand = math.ceil(totalItemLines/2)-1
+            edgeBand = (edgeBand > maxBand) and maxBand or edgeBand 
+
+            -- need to scroll?
+            if (math.abs(newPosOffset) > math.floor(totalItemLines/2)) then 
+                -- big scroll and center
+                return (newPos - math.floor(totalItemLines/2))
+
+            elseif (math.abs(newPosOffset) + edgeBand > math.floor(totalItemLines/2)) then 
+                    -- mini scroll and put on the edge of the band
+                    if (newPosOffset <0) then
+                        return newPos - edgeBand
                     else
-                        newTopItem = newPos + edgePercent*totalItemLines - totalItemLines
+                        return newPos - totalItemLines + edgeBand +1
                     end
-                end
+            else 
+                return topItem -- return current value (no scroll)
             end
         end
     end
-    return newTopItem
+    return topItem -- return current value (no scroll)
 end
 
 --[[

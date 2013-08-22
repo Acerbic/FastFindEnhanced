@@ -1,0 +1,90 @@
+﻿.Language=English,English
+.PluginContents="FastFind Enhanced"
+
+@Contents
+$
+$^ #FastFind Enhanced (v1.0)#
+$
+    This plugin replaces default functionality of ~fast search~@:FastFind@ in file panels - 
+you can type partial name of a file while holding Alt to reposition cursor to the file matching 
+a pattern you entered. Better visual presentation and improved algorithms provide more satisfying 
+user experience.
+  
+    Extended functionality can be disabled if undesired, forcing the plugin to mimic behavior of the
+native tool.
+
+    Just like the standard fast search dialogue, FastFind Enhanced supports use of '?' and '*' as
+wildcard characters and trailing '\' to limit search to folders only.
+
+   ~#Configuration#~@Config@
+   ~#Hotkeys#~@Hotkeys@
+   ~#Macro integration#~@Macro@
+
+© Gleb "Acerbic" Varenov, 2013
+
+
+@Config
+$
+$^ #FastFind Enhanced (v1.0)#
+$  #Configuration#
+
+ #Auto '*' as 1st char# - asterisk is inserted in the beginning of the input string every time 
+new search is started. This asterisk is a normal wildcard character just as if you typed it yourself, 
+so if you don't need it you can delete it with 'Backspace' key. 
+
+ #Favor shorter matches# - use different search algorithm from Far to search for the file matching 
+input string. Best explained with an example.
+
+  Say, you have two files:
+       #my images#
+       #Summercamp.img#
+
+  and you input string is #*im#. It can be matched to both of the files, but the 1st match is shorter
+(4th position in the file name vs 12th for the second). When several files are equally short and 
+current file is NOT among them, then the panel's sort mode is used to determine the winner.
+
+  Of course, this option only makes sense if the input string starts with '*', which makes it a great 
+complement to the previous one. 
+
+  Far default search strategy is to move cursor to the next file matching 
+input string below current file in the panel. If the end of the list is reached and match has not 
+been found yet, the search rolls over and starts from the top.
+
+ #Input dialogue on the bottom# - enable if you want old style static input dialogue position.
+
+ #Better scrolling algorithm# - scrolling happens when there are more files in the panel than panel 
+can show. If this option is disabled then the plugin will try to scoll panel to always keep current 
+file in the center of the first file column.
+  If enabled, "Scroll margin" value is used to determine if scrolling is required. If scrolling 
+happens, the new current file's position will be in the center of the panel (middle column).
+
+ #Scroll margin# - when "Better scrolling algorithm" is enabled, this value (0-100%) determines if 
+scrolling is required. Value 100 means to "scroll always", almost as if "Better scrolling algorithm" 
+is disabled; value 0 means "Never scroll if you can do without it (new current file is on screen)". 
+Values between these extremes form a scroll margin - see diagram below.
+@-
+    ....
+     10
+ ╔═════════╗                                  If the matched file is within scroll margin
+ ║   11    ║ <──┐                             bands, the panel will be scrolled so
+ ╠═══12════╣    │                             new file position on screen is just outside
+ │   13    │    │                             the margin.
+ │   14    │  Top and bottom scroll       
+ │   15    │  margins (roughly 40% value)
+ │   16    │    │
+ ╠═══17════╣    │
+ ║   18    ║ <──┘
+ ╚═════════╝
+     19
+    .... 
+@+
+
+ #Use XLat for non-English keyboards# - this is a bit cryptic option aimed to fix possible issues with
+non-English locales. The problem might arise whem typing file name while holding Alt. One way to 
+resolve it is to use Far internal XLat function based on predefined convertion tables, another option 
+is to let Windows re-send adjusted key strokes. If you can't type correct input in your language when 
+Alt is pressed, try toggling this option.
+
+@Hotkeys
+
+@Macro
