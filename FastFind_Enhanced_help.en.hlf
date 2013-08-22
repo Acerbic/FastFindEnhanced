@@ -16,8 +16,13 @@ native tool.
     Just like the standard fast search dialogue, FastFind Enhanced supports use of '?' and '*' as
 wildcard characters and trailing '\' to limit search to folders only.
 
+    Input dialogue provides numeric indication of how many files in the panel match current pattern: 
+the number in the top-right corner shows number of files matched above current file, the number in 
+the bottom-right corner - for files matched below current ("above" and "below" are according to 
+the sorting order used by the file panel at the moment).
+
    ~#Configuration#~@Config@
-   ~#Hotkeys#~@Hotkeys@
+   ~#Controls#~@Hotkeys@
    ~#Macro integration#~@Macro@
 
 © Gleb "Acerbic" Varenov, 2013
@@ -86,5 +91,36 @@ is to let Windows re-send adjusted key strokes. If you can't type correct input 
 Alt is pressed, try toggling this option.
 
 @Hotkeys
+$
+$^ #FastFind Enhanced (v1.0)#
+$  #Controls / Hotkeys#
+    You start a search by typing partial name of a file while holding Alt and when input dialogue pops
+up you can continue typing with Alt pressed, or you can release it. #Esc# will close the dialogue but 
+is not necessary, as many key combos that don't make a proper input towards a file name will result in
+input dialogue closed and the key combo resposible will be passed through to the Far manager - nothing 
+new here, just as the default fast find works.
+
+    That being said, the following keys have special meaning for FastFind Enhanced:
+  - #CtrlV# and #ShiftIns# to paste a string from the clipboard.
+  - #AltDown# and #CtrtEnter# to cycle forward through files matching current input string
+  - #AltUp# and #CtrlShiftEnter# to cycle backwards through files matching current input string
+  - #AltHome# to move to the first (topmost) file matched
+  - #AltEnd# to move to the last file matched
 
 @Macro
+$
+$^ #FastFind Enhanced (v1.0)#
+$  #Calling plugin from a macro#
+    The plugin exposes two functions for macro writers.
+
+  #Arguments: 1, KeyName#
+  Calls plugin and sends KeyName as the first pressed input key. If 
+plugin is already running on screen then nothing happens.
+
+ Plugin.Call("3106d308-a685-415c-96e6-84c8ebb361fe", 1, akey(1))
+
+  #Arguments: 2#
+  Returns current match pattern from the FastFind Enhanced dialogue. If plugin is
+not running, returns nil.
+
+ Plugin.Call("3106d308-a685-415c-96e6-84c8ebb361fe", 2)

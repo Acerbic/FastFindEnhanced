@@ -471,7 +471,6 @@ local function calc_new_panel_top_item(newPos)
             local newPosOffset = newPos - (topItem + (totalItemLines-1)/2) -- can be a fraction like 40.5 (in-between)
 
             -- if new item is within edge region, scrolling must happen
---            local edgeBand = math.floor(optForceScrollEdge * columnItemLines)
             local edgeBand = math.floor(optForceScrollEdge * totalItemLines)
 
             -- band must be >0 and 2*edgeBand < totalItemLines
