@@ -36,7 +36,6 @@ ffind.dieSemaphor = false
 ffind.resendKey = nil
 
 local firstRun = false
-local dontBlinkPlease = false
 local width = 36; --dialog width constant
 
 -- note that search (shorter or not) is different from natice in that it process FULL name, 
@@ -105,7 +104,6 @@ returns: newPositionIndex(nil/false or integer), countBefore, countAfter
 ]]
 local function get_new_cursor_position(pattern, direction)
     local refInd = panel.GetPanelInfo(nil,1).CurrentItem;
-
 
     local items = get_apanel_items()
 
@@ -501,33 +499,36 @@ end
 Do works of keyboard input to the dialog input field. Change pattern, check it against panel,
 update panel and dialog accordingly
 
-params: inputRec (InputRecord table)
+params: hDlg, inputRec (InputRecord table OR string with length==1)
+
 
 returns: true or false to be returned to Far from dlgProc
 ]]
 function ffind.process_input(hDlg, inputRec)
-    local dryKey = get_dry_key(inputRec)
-    local pattern = common.get_dialog_item_data(hDlg, 2)
-    local newPattern = pattern
+    -- hold on to return value (can't return immediately because it is not known
+    --  yet if the dialog will blink)
+    local returnValue = nil
 
-    local searchDirection = "current_or_next" -- default search mode
+    local dryKey = type(inputRec)~="string" and get_dry_key(inputRec) or inputRec
 
     if (dryKey == "CtrlV") then -- special occasion covering all insertion keys
         local paste = far.PasteFromClipboard ()
-        dontBlinkPlease = true
         for i = 1, paste:len()-1 do --all but the final one
-            ffind.process_input (hDlg, far.NameToInputRecord(paste:sub(i,i)))
+            ffind.process_input (hDlg, paste:sub(i,i))
         end
-        dontBlinkPlease = nil
 
         dryKey = paste:sub(-1,-1) -- process the final char as usuall input
 	end
 
+    local pattern = common.get_dialog_item_data(hDlg, 2)
+    local newPattern = pattern
+    local searchDirection = "current_or_next" -- default search mode
+
     -- omfg. LUA HAS NO SWITCH STATEMENT... Shit got serious...
     if (dryKey == "Default") then
-        return false
+        returnValue = false
     elseif (dryKey == "Ignore") then
-    	return true
+    	returnValue = true
 
     elseif (dryKey == "AltHome") then
         searchDirection = "first"
@@ -546,7 +547,7 @@ function ffind.process_input(hDlg, inputRec)
 
     elseif (dryKey == "Esc") then
         ffind.dieSemaphor = true;
-        return false -- close naturally by Esc
+        returnValue = false -- close naturally by Esc
 
     -- just init with blank
     elseif (dryKey == "") then
@@ -556,47 +557,54 @@ function ffind.process_input(hDlg, inputRec)
     -- dryKey is a simple character.
     elseif (type(dryKey) == "string" and dryKey:len() == 1) then
         if (pattern:sub(-1,-1) == '*' and ((dryKey=='*') or (dryKey=='?'))) then
-            return true -- ignore '**' and '*?'
+            returnValue = true -- ignore '**' and '*?'
+        else
+            newPattern = pattern..dryKey
         end
-        newPattern = pattern..dryKey
 
     else
         -- close dialog on every other key  or dryKey == nil
-        -- and pass the key over to the panel
+        --   and pass the key over to the panel
+
+        -- NOTE if type(inputRec) == "string", it will not reach this, previouse clause will
+        --   catch it (as dryKey:len() == 1)
         ffind.dieSemaphor = true;
         ffind.resendKey = far.InputRecordToName(inputRec)
-
-        far.SendDlgMessage(hDlg, _F.DM_CLOSE, -1, 0) -- force close
-        return true
+        returnValue = true
     end
 
-    -- pattern was modified. now search for newPattern in file list
-    local newPos, countBefore, countAfter
+    -- new input still needs processing, as previous code did not establish a return value
+    if (returnValue == nil) then
 
-    if (optShorterSearch) then
-        newPos, countBefore, countAfter = get_new_cursor_position_shorter_start(newPattern, searchDirection)
-    else
-        newPos, countBefore, countAfter = get_new_cursor_position(newPattern, searchDirection)
+        -- pattern was modified. now search for newPattern in file list
+        local newPos, countBefore, countAfter
+        if (optShorterSearch) then
+            newPos, countBefore, countAfter = get_new_cursor_position_shorter_start(newPattern, searchDirection)
+        else
+            newPos, countBefore, countAfter = get_new_cursor_position(newPattern, searchDirection)
+        end
+
+        -- new input does match something, update everything
+        if (newPos) then
+            update_dialog_data(hDlg, newPattern, countBefore, countAfter)
+
+            local newTopItem = calc_new_panel_top_item(newPos)
+            panel.RedrawPanel(nil, 1, {CurrentItem=newPos, TopPanelItem=newTopItem})
+
+            -- must move dialog AFTER panel scrolled to the element
+            if (optPanelSidePosition) then
+                far.SendDlgMessage(hDlg, _F.DM_MOVEDIALOG, 1, calc_new_side_dialog_coords())
+            end
+        end
+
+        returnValue = true
     end
 
-    if (not newPos) then
-        return true; -- new input does not match anything, ignore this key input
-    end
-
-    update_dialog_data(hDlg, newPattern, countBefore, countAfter)
-
-    local newTopItem = calc_new_panel_top_item(newPos)
-    panel.RedrawPanel(nil, 1, {CurrentItem=newPos, TopPanelItem=newTopItem})
-
-    -- must move dialog AFTER panel scrolled to the element
-    if (optPanelSidePosition) then
-        far.SendDlgMessage(hDlg, _F.DM_MOVEDIALOG, 1, calc_new_side_dialog_coords())
-    end
-
-    if (not dontBlinkPlease) then
+    if (type(inputRec)~="string") then
         far.SendDlgMessage (hDlg, _F.DM_CLOSE, -1, 0) -- blink the dialog to update panel views
     end
-    return true
+
+    return (returnValue==nil) and true or returnValue
 end
 
 
