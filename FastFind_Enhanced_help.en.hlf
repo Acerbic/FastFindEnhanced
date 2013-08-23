@@ -122,7 +122,7 @@ $  #Calling the plugin from a macro#
 
   #Arguments: 1, KeyName#
   Calls plugin and sends KeyName as the first pressed input key. If 
-plugin is already running on screen then nothing happens.
+plugin is already running on screen then nothing happens (nil is returned).
 
  Plugin.Call("3106d308-a685-415c-96e6-84c8ebb361fe", 1, akey(1))
 

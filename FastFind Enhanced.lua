@@ -1,7 +1,7 @@
 ﻿-- TODO open from dialog via F11 fix
 -- TODO check CtrlV and ShiftIns working
--- TODO return value for macro Plugin.Call (..., 1, ...) to indicate fail/success
 -- TODO "Installation" section to the readme (+macro setup explanation)
+-- TODO call help on config by F1 from config dialogue
 
 local _F = far.Flags
 local hDlg = nil  --singleton
@@ -71,4 +71,6 @@ function export.Open(openFrom, guid, item)
     	ffind.resendKey = nil
     end
     hDlg = nil
+
+    return true -- cause why not.
 end
