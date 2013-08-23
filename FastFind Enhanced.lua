@@ -1,6 +1,7 @@
 ﻿-- TODO open from dialog via F11 fix
 -- TODO check CtrlV and ShiftIns working
 -- TODO return value for macro Plugin.Call (..., 1, ...) to indicate fail/success
+-- TODO "Installation" section to the readme (+macro setup explanation)
 
 local _F = far.Flags
 local hDlg = nil  --singleton

@@ -6,7 +6,7 @@
 1
 "Auto '*' a&s 1st char"
 2
-"&Favor shorter matches"
+"&Favour shorter matches"
 3
 "Input dialogue on the &bottom"
 4
@@ -22,7 +22,7 @@ buttons.
 8
 "Cancel"
 
-9 main dialog title
+9 main dialogue title
 "FastFind Enhanced"
 
 10 plugin name

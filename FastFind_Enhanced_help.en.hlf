@@ -10,7 +10,7 @@ you can type partial name of a file while holding Alt to reposition cursor to th
 a pattern you entered. Better visual presentation and improved algorithms provide more satisfying 
 user experience.
   
-    Extended functionality can be disabled if undesired, forcing the plugin to mimic behavior of the
+    Extended functionality can be disabled if undesired, forcing the plugin to mimic behaviour of the
 native tool.
 
     Just like the standard fast search dialogue, FastFind Enhanced supports use of '?' and '*' as
@@ -37,7 +37,7 @@ $  #Configuration#
 new search is started. This asterisk is a normal wildcard character just as if you typed it yourself, 
 so if you don't need it you can delete it with 'Backspace' key. 
 
- #Favor shorter matches# - use different search algorithm from Far to search for the file matching 
+ #Favour shorter matches# - use different search algorithm from Far to search for the file matching 
 input string. Best explained with an example.
 
   Say, you have two files:
@@ -59,7 +59,7 @@ been found yet, the search rolls over and starts from the top.
 
  #Better scrolling algorithm# - scrolling happens when there are more files in the panel than panel 
 can show. If this option is disabled then the plugin will try to scroll panel to always keep current 
-file in the center of the first file column (mimicking default scrolling behavior).
+file in the centre of the first file column (mimicking default scrolling behaviour).
 
   If enabled, 
   1) If file to which cursor will be moved is off-screen, then scrolling will happen and the file will
@@ -92,8 +92,8 @@ Values between these extremes form a scroll margin - see diagram below.
 new position on screen is just outside the margin (i.e. closer to the center of the panel)
                                            
  #Use XLat for non-English keyboards# - this is a bit cryptic option aimed to fix possible issues with
-non-English locales. The problem might arise whem typing file name while holding Alt. One way to 
-resolve it is to use Far internal XLat function based on predefined convertion tables, another option 
+non-English locales. The problem might arise when typing file name while holding Alt. One way to 
+resolve it is to use Far internal XLat function based on predefined conversion tables, another option 
 is to let Windows re-send adjusted key strokes. If you can't type correct input in your language when 
 Alt is pressed, try toggling this option.
 
@@ -104,7 +104,7 @@ $  #Controls / Hotkeys#
     You start a search by typing partial name of a file while holding Alt and when input dialogue pops
 up you can continue typing with Alt pressed, or you can release it. #Esc# will close the dialogue but 
 is not necessary, as many key combos that don't make a proper input towards a file name will result in
-input dialogue closed and the key combo resposible will be passed through to the Far manager - nothing 
+input dialogue closed and the key combo responsible will be passed through to the Far manager - nothing 
 new here, just as the default fast find works.
 
     That being said, the following keys have special meaning for FastFind Enhanced:

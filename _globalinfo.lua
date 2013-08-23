@@ -1,6 +1,6 @@
 function export.GetGlobalInfo()
   return {
-    Version       = { 0, 8, 9, 9 },
+    Version       = { 1, 0, 0, 0 },
     MinFarVersion = { 3, 0, 0, 3265 },
     Guid          = win.Uuid("3106d308-a685-415c-96e6-84c8ebb361fe"),
     Title         = "FastFind Enhanced",
