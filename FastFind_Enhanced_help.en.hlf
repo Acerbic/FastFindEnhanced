@@ -14,7 +14,7 @@ user experience.
 native tool.
 
     Just like the standard fast search dialogue, FastFind Enhanced supports use of '?' and '*' as
-wildcard characters and trailing '\' to limit search to folders only.
+wildcard characters and trailing '/' or '\' to limit search to folders only.
 
     Input dialogue provides numeric indication of how many files in the panel match current pattern: 
 the number in the top-right corner shows number of files matched above current file, the number in 

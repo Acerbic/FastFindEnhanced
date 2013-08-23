@@ -1,5 +1,4 @@
-﻿-- TODO open from dialog via F11 fix
--- TODO check CtrlV and ShiftIns working
+﻿-- TODO check CtrlV and ShiftIns working
 -- TODO "Installation" section to the readme (+macro setup explanation)
 -- TODO call help on config by F1 from config dialogue
 
@@ -25,7 +24,7 @@ end
 
 function export.GetPluginInfo ()
   	return {
-      Flags = _F.PF_NONE,
+--      Flags = _F.PF_NONE,
 
       PluginMenuStrings = {far.GetMsg(10)},
       PluginMenuGuids = win.Uuid("8195eb6d-9651-4d60-9a16-ed0d90e20be7"),
