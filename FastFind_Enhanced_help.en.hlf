@@ -58,10 +58,14 @@ been found yet, the search rolls over and starts from the top.
  #Input dialogue on the bottom# - enable if you want old style static input dialogue position.
 
  #Better scrolling algorithm# - scrolling happens when there are more files in the panel than panel 
-can show. If this option is disabled then the plugin will try to scoll panel to always keep current 
-file in the center of the first file column.
-  If enabled, "Scroll margin" value is used to determine if scrolling is required. If scrolling 
-happens, the new current file's position will be in the center of the panel (middle column).
+can show. If this option is disabled then the plugin will try to scroll panel to always keep current 
+file in the center of the first file column (mimicking default scrolling behavior).
+
+  If enabled, 
+  1) If file to which cursor will be moved is off-screen, then scrolling will happen and the file will
+be placed in the middle of the panel.
+  2) If said file is visible on the panel, then "Scroll margin" value is used to determine if scrolling 
+is required.
 
  #Scroll margin# - when "Better scrolling algorithm" is enabled, this value (0-100%) determines if 
 scrolling is required. Value 100 means to "scroll always", almost as if "Better scrolling algorithm" 
@@ -70,10 +74,10 @@ Values between these extremes form a scroll margin - see diagram below.
 @-
     ....
      10
- ╔═════════╗                                  If the matched file is within scroll margin
- ║   11    ║ <──┐                             bands, the panel will be scrolled so
- ╠═══12════╣    │                             new file position on screen is just outside
- │   13    │    │                             the margin.
+ ╔═════════╗                                  
+ ║   11    ║ <──┐                             
+ ╠═══12════╣    │                             
+ │   13    │    │                             
  │   14    │  Top and bottom scroll       
  │   15    │  margins (roughly 40% value)
  │   16    │    │
@@ -84,6 +88,9 @@ Values between these extremes form a scroll margin - see diagram below.
     .... 
 @+
 
+    If matched file is within scroll margin bands, the panel will be scrolled so file's
+new position on screen is just outside the margin (i.e. closer to the center of the panel)
+                                           
  #Use XLat for non-English keyboards# - this is a bit cryptic option aimed to fix possible issues with
 non-English locales. The problem might arise whem typing file name while holding Alt. One way to 
 resolve it is to use Far internal XLat function based on predefined convertion tables, another option 
@@ -110,7 +117,7 @@ new here, just as the default fast find works.
 @Macro
 $
 $^ #FastFind Enhanced (v1.0)#
-$  #Calling plugin from a macro#
+$  #Calling the plugin from a macro#
     The plugin exposes two functions for macro writers.
 
   #Arguments: 1, KeyName#

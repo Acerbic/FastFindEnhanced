@@ -19,7 +19,7 @@ reposition cursor to the file matching a pattern you entered.
    '*im' pattern will be matched to 'my images' first and to 
    'Summercamp.img' second (if disabled then the next matching in the 
    file list will be selected - default Far Manager behaviour);
- - more intuitive scrolling in panels with a great number of files;
+ - more intuitive scrolling in panels with great number of files;
  - alternative handling of non-English input while Alt is held - with 
    or without using XLat. (Pick the best fitting your locale);
  - Fancy 'side stick' dialogue placement.

@@ -1,6 +1,4 @@
-﻿-- TODO F1 help (HLF)
--- TODO open from dialog via F11 fix
--- TODO Downwards scrolling 1 extra line flex
+﻿-- TODO open from dialog via F11 fix
 -- TODO check CtrlV and ShiftIns working
 -- TODO return value for macro Plugin.Call (..., 1, ...) to indicate fail/success
 
