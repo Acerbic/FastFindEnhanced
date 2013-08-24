@@ -1,5 +1,4 @@
-﻿-- TODO "Installation" section to the readme (+macro setup explanation)
--- TODO call help on config by F1 from config dialogue
+﻿-- TODO call help on config by F1 from config dialogue
 
 local _F = far.Flags
 local hDlg = nil  --singleton

@@ -24,6 +24,16 @@ reposition cursor to the file matching a pattern you entered.
    or without using XLat. (Pick the best fitting your locale);
  - Fancy 'side stick' dialogue placement.
 
+-== Installation ==-
+
+  1. Copy 'FastFind Enhanced' folder into your Far Manager's plugins 
+folder - '%FARHOME%\Plugins'
+
+  2. Copy 'FastFind Enhanced macro.lua' file into your custom macros
+folder - '%FARPROFILE%\Macros\scripts'
+  
+  3. Restart Far Manager.
+
 -== Controls ==-
 
 AltHome                 - to the first element matching current pattern
@@ -37,7 +47,8 @@ Esc                     - close FastFind
 
   Arguments: 1, KeyName
   Calls plugin and sends KeyName as the first pressed input key. If 
-plugin is already running on screen then nothing happens (nil is returned).
+plugin is already running on screen then nothing happens 
+(nil is returned).
 
 Plugin.Call("3106d308-a685-415c-96e6-84c8ebb361fe", 1, akey(1))
 
@@ -46,3 +57,4 @@ Plugin.Call("3106d308-a685-415c-96e6-84c8ebb361fe", 1, akey(1))
 not running, returns nil.
 
 Plugin.Call("3106d308-a685-415c-96e6-84c8ebb361fe", 2)
+
