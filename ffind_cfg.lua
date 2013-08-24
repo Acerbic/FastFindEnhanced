@@ -103,7 +103,7 @@ function ffind_cfg.create_dialog()
 --[[11]]       ,{_F.DI_BUTTON     ,23,11,0,11,      0,0,0,0,far.GetMsg(8)}
 	}
 
-    local hDlg = far.DialogInit(ffind_cfg.dlgGUID, -1, -1, 42, 13, nil, dialogItems,
+    local hDlg = far.DialogInit(ffind_cfg.dlgGUID, -1, -1, 42, 13, "Config", dialogItems,
 		_F.FDLG_KEEPCONSOLETITLE,
         ffind_cfg.dlg_proc)
 

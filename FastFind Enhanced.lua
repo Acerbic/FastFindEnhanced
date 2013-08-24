@@ -1,6 +1,4 @@
-﻿-- TODO call help on config by F1 from config dialogue
-
-local _F = far.Flags
+﻿local _F = far.Flags
 local hDlg = nil  --singleton
 
 function export.Configure(guid)
