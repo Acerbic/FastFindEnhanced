@@ -651,8 +651,8 @@ local function dlg_proc (hDlg, msg, param1, param2)
     end
 
     if (msg == _F.DN_CTLCOLORDLGITEM) then
-        if (param1==3) then param2[1].ForegroundColor = 10; return param2; end
-        if (param1==4) then param2[1].ForegroundColor = 12; return param2; end
+        if (param1==3) then param2[1].ForegroundColor = far.Colors.COL_DIALOGLISTSELECTEDHIGHLIGHT; return param2; end
+        if (param1==4) then param2[1].ForegroundColor = far.Colors.COL_DIALOGLISTSELECTEDHIGHLIGHT; return param2; end
     elseif (msg == _F.DN_CONTROLINPUT) then
         if (param1 == 2) then
             if ((param2.EventType ~= _F.KEY_EVENT) and (param2.EventType ~= _F.FARMACRO_KEY_EVENT)) then
