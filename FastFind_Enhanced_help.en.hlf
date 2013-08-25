@@ -33,11 +33,11 @@ $
 $^ #FastFind Enhanced (v1.0)#
 $  #Configuration#
 
- #Auto '*' as 1st char# - asterisk is inserted in the beginning of the input string every time 
+ #[x] Auto '*' as 1st char# - asterisk is inserted in the beginning of the input string every time 
 new search is started. This asterisk is a normal wildcard character just as if you typed it yourself, 
 so if you don't need it you can delete it with 'Backspace' key. 
 
- #Favour shorter matches# - use different search algorithm from Far to search for the file matching 
+ #[x] Favour shorter matches# - use different search algorithm from Far to search for the file matching 
 input string. Best explained with an example.
 
   Say, you have two files:
@@ -55,9 +55,9 @@ complement to the previous one.
 input string below current file in the panel. If the end of the list is reached and match has not 
 been found yet, the search rolls over and starts from the top.
 
- #Input dialogue on the bottom# - enable if you want old style static input dialogue position.
+ #[ ] Input dialogue on the bottom# - enable if you want old style static input dialogue position.
 
- #Better scrolling algorithm# - scrolling happens when there are more files in the panel than panel 
+ #[x] Better scrolling algorithm# - scrolling happens when there are more files in the panel than panel 
 can show. If this option is disabled then the plugin will try to scroll panel to always keep current 
 file in the centre of the first file column (mimicking default scrolling behaviour).
 
@@ -91,7 +91,7 @@ Values between these extremes form a scroll margin - see diagram below.
     If matched file is within scroll margin bands, the panel will be scrolled so file's
 new position on screen is just outside the margin (i.e. closer to the center of the panel)
                                            
- #Use XLat for non-English keyboards# - this is a bit cryptic option aimed to fix possible issues with
+ #[ ] Use XLat for non-English keyboards# - this is a bit cryptic option aimed to fix possible issues with
 non-English locales. The problem might arise when typing file name while holding Alt. One way to 
 resolve it is to use Far internal XLat function based on predefined conversion tables, another option 
 is to let Windows re-send adjusted key strokes. If you can't type correct input in your language when 
