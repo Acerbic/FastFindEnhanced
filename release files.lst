@@ -1,0 +1,15 @@
+﻿macro
+_globalinfo.lua
+common_functions.lua
+english.lng
+FastFind Enhanced.dll
+FastFind Enhanced.lua
+FastFind Enhanced-x64.dll
+FastFind_Enhanced_help.en.hlf
+FastFind_Enhanced_help.ru.hlf
+ffind.lua
+ffind_cfg.lua
+file_id.diz
+readme_en.txt
+readme_ru.txt
+russian.lng
