@@ -27,10 +27,10 @@
 
 -== Установка ==-
 
-  1. Папку 'FastFind Enhanced' скопируйте в папку для плагинов Far -
+  1. Распакуйте содержимое архива в новую папку внутри папки для плагинов Far -
 '%FARHOME%\Plugins'
 
-  2. Файл 'FastFind Enhanced macro.lua' положите в папку макросов -
+  2. Скопируйте файл 'macro\FastFind Enhanced macro.lua' в папку макросов -
 '%FARPROFILE%\Macros\scripts'
 
   3. Перезапустите Far Manager.

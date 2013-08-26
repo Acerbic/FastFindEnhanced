@@ -26,11 +26,11 @@ reposition cursor to the file matching a pattern you entered.
 
 -== Installation ==-
 
-  1. Copy 'FastFind Enhanced' folder into your Far Manager's plugins 
-folder - '%FARHOME%\Plugins'
+  1. Extract archive contents in a new folder within your Far 
+Manager's plugins folder ('%FARHOME%\Plugins').
 
-  2. Copy 'FastFind Enhanced macro.lua' file into your custom macros
-folder - '%FARPROFILE%\Macros\scripts'
+  2. Copy 'macro\FastFind Enhanced macro.lua' file into your custom 
+macros folder - '%FARPROFILE%\Macros\scripts'
   
   3. Restart Far Manager.
 
