@@ -58,3 +58,10 @@ not running, returns nil.
 
 Plugin.Call("3106d308-a685-415c-96e6-84c8ebb361fe", 2)
 
+
+All GUIDs:
+{3106d308-a685-415c-96e6-84c8ebb361fe} plugin itself
+{a1770ccc-5933-4661-bc8c-53192d0c06fa} input dialogue (main plugin dialogue)
+{8195eb6d-9651-4d60-9a16-ed0d90e20be7} plugins menu (F11) item
+{30ed409d-b5e6-4ed0-a3ef-d1757a36b6f5} configuration dialogue
+{22595d6e-fc1e-4317-9935-5e9d3a39bea7} plugins' configuration menu item
