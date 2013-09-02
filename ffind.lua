@@ -513,11 +513,15 @@ function ffind.process_input(hDlg, inputRec)
 
     if (dryKey == "CtrlV") then -- special occasion covering all insertion keys
         local paste = far.PasteFromClipboard ()
-        for i = 1, paste:len()-1 do --all but the final one
-            ffind.process_input (hDlg, paste:sub(i,i))
-        end
+        if (paste) then
+            for i = 1, paste:len()-1 do --all but the final one
+                ffind.process_input (hDlg, paste:sub(i,i))
+            end
 
-        dryKey = paste:sub(-1,-1) -- process the final char as usuall input
+            dryKey = paste:sub(-1,-1) -- process the final char as usuall input
+        else
+            dryKey = "Ignore"
+        end
 	end
 
     local pattern = common.get_dialog_item_data(hDlg, 2)
