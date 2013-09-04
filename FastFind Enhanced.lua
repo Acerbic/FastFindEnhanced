@@ -1,4 +1,5 @@
-﻿local _F = far.Flags
+﻿-- TODO document func 3 and its limitations
+local _F = far.Flags
 local hDlg = nil  --singleton
 
 function export.Configure(guid)

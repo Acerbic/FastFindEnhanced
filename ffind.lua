@@ -514,7 +514,7 @@ clean and 'intuitive' decomposition though.
 
     -- hold on to return value (can't return immediately because it is not known
     --  yet if the dialog will blink)
-    local returnValue = nil
+--    local returnValue = nil
 
     local dryKey = type(inputRec)~="string" and get_dry_key(inputRec) or inputRec
 
@@ -529,17 +529,21 @@ clean and 'intuitive' decomposition though.
         else
             dryKey = "Ignore"
         end
-	end
+    end
 
+    --------- PART ONE, in which we establish newPattern and searchDirection 
     local pattern = common.get_dialog_item_data(hDlg, 2)
     local newPattern = pattern
     local searchDirection = "current_or_next" -- default search mode
 
     -- omfg. LUA HAS NO SWITCH STATEMENT... Shit got serious...
     if (dryKey == "Default") then
-        returnValue = false
+        return false
     elseif (dryKey == "Ignore") then
-    	returnValue = true
+        return true
+    elseif (dryKey == "Esc") then
+        ffind.dieSemaphor = true;
+        return false -- close naturally by Esc
 
     elseif (dryKey == "AltHome") then
         searchDirection = "first"
@@ -556,10 +560,6 @@ clean and 'intuitive' decomposition though.
         newPattern = pattern:sub(1, -2)
         searchDirection = "current"
 
-    elseif (dryKey == "Esc") then
-        ffind.dieSemaphor = true;
-        returnValue = false -- close naturally by Esc
-
     -- just init with blank
     elseif (dryKey == "") then
         newPattern = ""
@@ -568,7 +568,7 @@ clean and 'intuitive' decomposition though.
     -- dryKey is a simple character.
     elseif (type(dryKey) == "string" and dryKey:len() == 1) then
         if (pattern:sub(-1,-1) == '*' and ((dryKey=='*') or (dryKey=='?'))) then
-            returnValue = true -- ignore '**' and '*?'
+            return true -- ignore '**' and '*?'
         else
             newPattern = pattern..dryKey
         end
@@ -581,41 +581,41 @@ clean and 'intuitive' decomposition though.
         --   catch it (as dryKey:len() == 1)
         ffind.dieSemaphor = true;
         ffind.resendKey = far.InputRecordToName(inputRec)
-        returnValue = true
+        far.SendDlgMessage (hDlg, _F.DM_CLOSE, -1, 0) -- close
+        return true
     end
 
-    -- new input still needs processing, as previous code did not establish a return value
-    if (returnValue == nil) then
 
-        -- pattern was modified. now search for newPattern in file list
-        local newPos, countBefore, countAfter
-        if (optShorterSearch) then
-            newPos, countBefore, countAfter = get_new_cursor_position_shorter_start(newPattern, searchDirection)
-        else
-            newPos, countBefore, countAfter = get_new_cursor_position(newPattern, searchDirection)
+
+    --------- PART TWO, in which we process newPattern, update active panel and the 
+    ---------           dialog if return did not happen up to this point 
+
+    -- search for newPattern in file list
+    local newPos, countBefore, countAfter
+    if (optShorterSearch) then
+        newPos, countBefore, countAfter = get_new_cursor_position_shorter_start(newPattern, searchDirection)
+    else
+        newPos, countBefore, countAfter = get_new_cursor_position(newPattern, searchDirection)
+    end
+
+    -- if new input does match something, then update everything
+    if (newPos) then
+        update_dialog_data(hDlg, newPattern, countBefore, countAfter)
+
+        local newTopItem = calc_new_panel_top_item(newPos)
+        panel.RedrawPanel(nil, 1, {CurrentItem=newPos, TopPanelItem=newTopItem})
+
+        -- must move dialog AFTER panel scrolled to the element
+        if (optPanelSidePosition) then
+            far.SendDlgMessage(hDlg, _F.DM_MOVEDIALOG, 1, calc_new_side_dialog_coords())
         end
-
-        -- new input does match something, update everything
-        if (newPos) then
-            update_dialog_data(hDlg, newPattern, countBefore, countAfter)
-
-            local newTopItem = calc_new_panel_top_item(newPos)
-            panel.RedrawPanel(nil, 1, {CurrentItem=newPos, TopPanelItem=newTopItem})
-
-            -- must move dialog AFTER panel scrolled to the element
-            if (optPanelSidePosition) then
-                far.SendDlgMessage(hDlg, _F.DM_MOVEDIALOG, 1, calc_new_side_dialog_coords())
-            end
-        end
-
-        returnValue = true
     end
 
     if (type(inputRec)~="string") then
         far.SendDlgMessage (hDlg, _F.DM_CLOSE, -1, 0) -- blink the dialog to update panel views
     end
 
-    return (returnValue==nil) and true or returnValue
+    return true
 end
 
 
@@ -750,6 +750,13 @@ current file pointer in the panel, if possible.
 Params: hDlg, newPattern (string)
 ]]
 function ffind.set_current_ffind_pattern(hDlg, pattern)
+    local newPos, countBefore, countAfter = get_new_cursor_position(pattern, "current")
+
+    -- if new input does match something, then update
+    if (newPos) then
+        update_dialog_data(hDlg, pattern, countBefore, countAfter)
+        far.SendDlgMessage (hDlg, _F.DM_CLOSE, -1, 0) -- blink the dialog to update panel views
+    end
 end
 
 return ffind
