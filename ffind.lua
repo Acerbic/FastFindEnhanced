@@ -501,10 +501,17 @@ update panel and dialog accordingly
 
 params: hDlg, inputRec (InputRecord table OR string with length==1)
 
+note: single char inputRec params are used to implement "CtrlV" processing and work as "no blink" flag.
 
 returns: true or false to be returned to Far from dlgProc
 ]]
 function ffind.process_input(hDlg, inputRec)
+
+--[[
+I admit that the following code is confusing, overcomplicated. I did not manage to figure out a proper
+clean and 'intuitive' decomposition though.
+]]
+
     -- hold on to return value (can't return immediately because it is not known
     --  yet if the dialog will blink)
     local returnValue = nil
@@ -734,6 +741,15 @@ end
 
 function ffind.get_current_ffind_pattern(hDlg)
     return common.get_dialog_item_data(hDlg, 2)
+end
+
+--[[
+Replace dialog's input with given pattern WITHOUT moving 
+current file pointer in the panel, if possible.
+
+Params: hDlg, newPattern (string)
+]]
+function ffind.set_current_ffind_pattern(hDlg, pattern)
 end
 
 return ffind

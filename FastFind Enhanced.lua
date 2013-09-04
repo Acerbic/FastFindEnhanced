@@ -37,12 +37,12 @@ function export.Open(openFrom, guid, item)
     local akeyPassed = nil
 
     -- command "2" - get current input string
-    if (openFrom==_F.OPEN_FROMMACRO and item.n>=0 and item[1]==2) then
+    if (openFrom==_F.OPEN_FROMMACRO and item.n>=1 and item[1]==2) then
         return hDlg and ffind.get_current_ffind_pattern(hDlg)
     end
 
     -- command "1" - open with a starting char
-    if (openFrom==_F.OPEN_FROMMACRO and item.n>=1 and item[1]==1 and item[2]) then
+    if (openFrom==_F.OPEN_FROMMACRO and item.n>=2 and item[1]==1 and item[2]) then
         akeyPassed = item[2]
     end
 
@@ -50,6 +50,11 @@ function export.Open(openFrom, guid, item)
 
     hDlg = ffind.create_dialog(akeyPassed)
     if (not hDlg) then return nil end
+
+    -- command "3" - open and put in a string as current input
+    if (openFrom==_F.OPEN_FROMMACRO and item.n>=2 and item[1]==3 and item[2]) then
+        ffind.set_current_ffind_pattern(hDlg, item[2])
+    end
 
 	--main loop
     while (not ffind.dieSemaphor) do
